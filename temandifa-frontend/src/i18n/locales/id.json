@@ -1,0 +1,62 @@
+{
+  "greeting": {
+    "welcome": "Selamat Pagi",
+    "ask_help": "Bagaimana saya dapat membantu anda hari ini?"
+  },
+  "menu": {
+    "camera": "Kamera",
+    "scan": "Scan",
+    "voice": "Suara",
+    "camera_obj": "Kamera (Objek)",
+    "profile": "Profil Saya",
+    "settings": "Pengaturan"
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "appearance": "TAMPILAN & PREFERENSI",
+    "dark_mode": "Mode Gelap",
+    "language": "Bahasa",
+    "info": "INFORMASI & BANTUAN",
+    "help": "Panduan & Bantuan",
+    "privacy": "Kebijakan Privasi",
+    "about": "Tentang Aplikasi",
+    "version": "Versi"
+  },
+  "common": {
+    "back": "Kembali",
+    "loading": "Memuat...",
+    "error": "Terjadi Kesalahan",
+    "success": "Berhasil"
+  },
+  "voice": {
+    "status_idle": "Ketuk mic untuk merekam",
+    "status_listening": "Mendengarkan...",
+    "status_processing": "Memproses...",
+    "status_done": "Selesai",
+    "status_failed": "Gagal memproses",
+    "result_label": "Hasil Transkripsi:",
+    "hint": "Tekan tombol mikrofon di atas untuk mulai merekam suara Anda.\nKami akan mengubahnya menjadi teks.",
+    "error_start": "Gagal memulai perekaman.",
+    "error_process": "Tidak dapat memproses suara."
+  },
+  "permissions": {
+    "denied_title": "Izin Ditolak",
+    "required_title": "Izin Diperlukan",
+    "mic_required": "Mikrofon diperlukan untuk fitur ini.",
+    "gallery_required": "Mohon izinkan akses galeri untuk mengunggah dokumen."
+  },
+  "scan": {
+    "method_title": "Pilih Metode Scan",
+    "camera_desc": "Foto dokumen secara langsung",
+    "gallery_desc": "Pilih file dari penyimpanan",
+    "result_title": "Hasil Scan Galeri",
+    "result_text": "Teks Terbaca:",
+    "no_text": "Tidak ada teks yang dapat dibaca.",
+    "text_found": "Teks ditemukan.",
+    "read": "Baca",
+    "retry": "Ulangi",
+    "error_gallery": "Gagal mengambil gambar dari galeri.",
+    "error_process": "Terjadi kesalahan saat memproses gambar.",
+    "failed": "Maaf, gagal memproses gambar."
+  }
+}

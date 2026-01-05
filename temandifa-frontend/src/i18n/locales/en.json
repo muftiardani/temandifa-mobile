@@ -1,0 +1,62 @@
+{
+  "greeting": {
+    "welcome": "Good Morning",
+    "ask_help": "How can I help you today?"
+  },
+  "menu": {
+    "camera": "Camera",
+    "scan": "Scan",
+    "voice": "Voice",
+    "camera_obj": "Camera (Object)",
+    "profile": "My Profile",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "APPEARANCE & PREFERENCES",
+    "dark_mode": "Dark Mode",
+    "language": "Language",
+    "info": "INFO & HELP",
+    "help": "Help & Support",
+    "privacy": "Privacy Policy",
+    "about": "About App",
+    "version": "Version"
+  },
+  "common": {
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "voice": {
+    "status_idle": "Tap mic to record",
+    "status_listening": "Listening...",
+    "status_processing": "Processing...",
+    "status_done": "Done",
+    "status_failed": "Failed to process",
+    "result_label": "Transcription Result:",
+    "hint": "Tap the microphone button above to start recording your voice.\nWe will transcribe it to text.",
+    "error_start": "Failed to start recording.",
+    "error_process": "Unable to process audio."
+  },
+  "permissions": {
+    "denied_title": "Permission Denied",
+    "required_title": "Permission Required",
+    "mic_required": "Microphone is required for this feature.",
+    "gallery_required": "Please grant gallery access to upload documents."
+  },
+  "scan": {
+    "method_title": "Select Scan Method",
+    "camera_desc": "Take a photo of document directly",
+    "gallery_desc": "Select file from storage",
+    "result_title": "Gallery Scan Result",
+    "result_text": "Read Text:",
+    "no_text": "No readable text found.",
+    "text_found": "Text found.",
+    "read": "Read",
+    "retry": "Retry",
+    "error_gallery": "Failed to pick image from gallery.",
+    "error_process": "An error occurred while processing the image.",
+    "failed": "Sorry, failed to process image."
+  }
+}

@@ -1,0 +1,114 @@
+version: "3.8"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Database Service (PostgreSQL)
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: temandifa_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-temandifa}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ---------------------------------------------------------------------------
+  # Cache Service (Redis)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: temandifa_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # ---------------------------------------------------------------------------
+  # Core Backend Service (Go)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./temandifa-backend
+      dockerfile: Dockerfile
+    container_name: temandifa_backend
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+      - ai-service
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - GIN_MODE=debug
+      - DB_DSN=host=postgres user=${DB_USER:-postgres} password=${DB_PASSWORD:-postgres} dbname=${DB_NAME:-temandifa} port=5432 sslmode=disable TimeZone=Asia/Jakarta
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - AI_SERVICE_URL=http://ai-service:8000
+      - JWT_SECRET=${JWT_SECRET:-secret}
+      - JWT_EXPIRATION_DAYS=7
+
+  # ---------------------------------------------------------------------------
+  # AI Microservice (Python)
+  # ---------------------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./temandifa-ai-service
+      dockerfile: Dockerfile
+    container_name: temandifa_ai
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    # Optional: Mount models directory to persist downloaded models
+    volumes:
+      - ai_models:/app/models
+
+  # ---------------------------------------------------------------------------
+  # Monitoring: Prometheus
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: temandifa_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+
+  # ---------------------------------------------------------------------------
+  # Monitoring: Grafana
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: temandifa_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  postgres_data:
+  redis_data:
+  ai_models:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: temandifa_network
