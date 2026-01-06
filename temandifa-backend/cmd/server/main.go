@@ -12,6 +12,7 @@ import (
 	"temandifa-backend/internal/database"
 	"temandifa-backend/internal/handlers"
 	"temandifa-backend/internal/logger"
+	"temandifa-backend/internal/middleware"
 )
 
 func main() {
@@ -32,7 +33,7 @@ func main() {
 		// Fallback for local dev if .env missing
 		dsn = "host=localhost user=postgres password=postgres dbname=temandifa port=5432 sslmode=disable TimeZone=Asia/Jakarta"
 	}
-	database.Connect(dsn)
+	database.ConnectPostgres(dsn)
 
 	// 2. Connect to Redis
 	redisAddr := os.Getenv("REDIS_ADDR")
@@ -50,8 +51,8 @@ func main() {
 	r := gin.New()
 
 	// Use custom structured logging middleware (zap)
-	r.Use(logger.GinMiddleware())
-	r.Use(logger.RecoveryMiddleware())
+	r.Use(logger.GinLogger())
+	r.Use(logger.GinRecovery())
 
 	// Initialize Handlers
 	aiServiceURL := os.Getenv("AI_SERVICE_URL")
@@ -63,10 +64,11 @@ func main() {
 	aiHandler := handlers.NewAIProxyHandler(aiServiceURL)
 	authHandler := &handlers.AuthHandler{}
 	historyHandler := &handlers.HistoryHandler{}
+	cacheHandler := &handlers.CacheHandler{}
 
 	// Routes
 	api := r.Group("/api/v1")
-	api.Use(handlers.RateLimitMiddleware(60, 60)) // 60 requests per 60 seconds
+	api.Use(middleware.RateLimiter(60, 60)) // 60 requests per 60 seconds
 	{
 		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "healthy"})
@@ -79,7 +81,7 @@ func main() {
 
 	// Protected Routes (require valid JWT token)
 	protected := api.Group("/")
-	protected.Use(handlers.AuthMiddleware())
+	protected.Use(middleware.Auth())
 	{
 		// AI Routes
 		protected.POST("/detect", aiHandler.DetectObjects)
@@ -91,6 +93,13 @@ func main() {
 		protected.POST("/history", historyHandler.CreateHistory)
 		protected.DELETE("/history/:id", historyHandler.DeleteHistory)
 		protected.DELETE("/history", historyHandler.ClearUserHistory)
+
+		// Cache Management Routes (admin)
+		protected.GET("/cache/stats", cacheHandler.GetCacheStats)
+		protected.DELETE("/cache/detection", cacheHandler.ClearDetectionCache)
+		protected.DELETE("/cache/ocr", cacheHandler.ClearOCRCache)
+		protected.DELETE("/cache/transcription", cacheHandler.ClearTranscriptionCache)
+		protected.DELETE("/cache", cacheHandler.ClearAllCache)
 	}
 
 	r.GET("/", func(c *gin.Context) {

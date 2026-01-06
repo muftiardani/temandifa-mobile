@@ -7,8 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// GinMiddleware returns a Gin middleware for request logging using zap
-func GinMiddleware() gin.HandlerFunc {
+// GinLogger returns a Gin middleware for request logging using zap
+func GinLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -64,8 +64,8 @@ func GinMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RecoveryMiddleware returns a Gin middleware for panic recovery with logging
-func RecoveryMiddleware() gin.HandlerFunc {
+// GinRecovery returns a Gin middleware for panic recovery with logging
+func GinRecovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
