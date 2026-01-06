@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import detection
+from app.routers import detection, ocr, transcription
 
 app = FastAPI(title="TemanDifa AI Service", version="1.0.0")
 
@@ -13,7 +13,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include all AI routers
 app.include_router(detection.router)
+app.include_router(ocr.router)
+app.include_router(transcription.router)
 
 @app.get("/")
 def read_root():

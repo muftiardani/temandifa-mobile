@@ -1,11 +1,7 @@
-import axios from "axios";
+import apiClient, { getErrorMessage } from "./apiClient";
 import { OcrApiResponse } from "../types/ocr";
 
-// Gunakan variable environment atau config global idealnya
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8080/api/v1/ocr";
-
-console.log("[OCRService] Initialized with API_URL:", API_URL);
+console.log("[OCRService] Initialized");
 
 export const scanText = async (imageUri: string): Promise<OcrApiResponse> => {
   console.log("[OCRService] Sending image for OCR...");
@@ -18,14 +14,15 @@ export const scanText = async (imageUri: string): Promise<OcrApiResponse> => {
   });
 
   try {
-    const response = await axios.post<OcrApiResponse>(API_URL, formData, {
+    const response = await apiClient.post<OcrApiResponse>("/ocr", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: 25000, // 25 seconds for OCR (text extraction takes longer)
     });
     return response.data;
   } catch (error) {
-    console.error("OCR Service Error:", error);
+    console.error("[OCRService] Error:", getErrorMessage(error));
     throw error;
   }
 };

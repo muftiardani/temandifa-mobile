@@ -15,8 +15,11 @@ import * as Speech from "expo-speech";
 import { Ionicons } from "@expo/vector-icons";
 
 import { detectObject } from "../services/detectionService";
+import { saveHistory } from "../services/historyService";
 import { LoadingOverlay } from "../components/LoadingOverlay";
 import { DetectionResult } from "../types/detection";
+import { haptics } from "../utils/haptics";
+import { optimizeImageForDetection } from "../utils/imageUtils";
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
@@ -49,8 +52,11 @@ export default function CameraScreen() {
   async function takePicture() {
     if (cameraRef.current) {
       try {
+        // Haptic feedback on capture
+        await haptics.medium();
+
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.5,
+          quality: 0.8, // Higher quality, will optimize after
           base64: false,
         });
         if (photo) {
@@ -59,6 +65,7 @@ export default function CameraScreen() {
         }
       } catch (e) {
         console.error(e);
+        haptics.error();
         Alert.alert("Error", "Gagal mengambil foto.");
       }
     }
@@ -68,19 +75,32 @@ export default function CameraScreen() {
     setLoading(true);
     setDetections([]);
     try {
-      const response = await detectObject(uri);
+      // Optimize image for detection (smaller size)
+      const optimizedUri = await optimizeImageForDetection(uri);
+
+      const response = await detectObject(optimizedUri);
       if (response.data) {
         setDetections(response.data);
+
         // Speak summary
         const labels = response.data.map((d) => d.label).join(", ");
         if (labels) {
+          haptics.success();
           Speech.speak("Terdeteksi: " + labels);
+
+          // Save to history
+          try {
+            await saveHistory("OBJECT", uri, labels);
+          } catch {
+            console.log("Failed to save history");
+          }
         } else {
           Speech.speak("Tidak ada objek terdeteksi");
         }
       }
     } catch (error) {
       console.error(error);
+      haptics.error();
       Speech.speak("Gagal mendeteksi objek");
       Alert.alert("Error", "Gagal mendeteksi objek.");
     } finally {

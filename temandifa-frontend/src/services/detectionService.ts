@@ -1,12 +1,7 @@
-import axios from "axios";
+import apiClient, { getErrorMessage } from "./apiClient";
 import { ApiResponse } from "../types/detection";
 
-// Ganti dengan IP komputer Anda jika test di HP Fisik
-// Jika di Android Emulator gunakan 10.0.2.2
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8080/api/v1/detect";
-
-console.log("[DetectionService] Initialized with API_URL:", API_URL);
+console.log("[DetectionService] Initialized");
 
 export const detectObject = async (imageUri: string): Promise<ApiResponse> => {
   console.log("[DetectionService] Sending image to API...");
@@ -19,14 +14,15 @@ export const detectObject = async (imageUri: string): Promise<ApiResponse> => {
   });
 
   try {
-    const response = await axios.post<ApiResponse>(API_URL, formData, {
+    const response = await apiClient.post<ApiResponse>("/detect", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: 15000, // 15 seconds for detection
     });
     return response.data;
   } catch (error) {
-    console.error("Detection Service Error:", error);
+    console.error("[DetectionService] Error:", getErrorMessage(error));
     throw error;
   }
 };

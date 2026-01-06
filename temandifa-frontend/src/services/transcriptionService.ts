@@ -1,15 +1,21 @@
-import axios from "axios";
+import apiClient, { getErrorMessage } from "./apiClient";
 
-// Gunakan variable environment atau config global idealnya
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8080/api/v1";
-
-console.log("[TranscriptionService] Initialized with API_URL:", API_URL);
+console.log("[TranscriptionService] Initialized");
 
 export interface TranscriptionResult {
   status: string;
   text?: string;
+  language?: string;
   error?: string;
+}
+
+interface TranscriptionApiResponse {
+  status: string;
+  filename: string;
+  data: {
+    text: string;
+    language: string;
+  };
 }
 
 export const transcribeAudio = async (
@@ -25,14 +31,25 @@ export const transcribeAudio = async (
   });
 
   try {
-    const response = await axios.post<TranscriptionResult>(API_URL, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
+    const response = await apiClient.post<TranscriptionApiResponse>(
+      "/transcribe",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 60000, // 60 seconds for audio transcription
+      }
+    );
+
+    // Map API response to TranscriptionResult
+    return {
+      status: response.data.status,
+      text: response.data.data?.text,
+      language: response.data.data?.language,
+    };
   } catch (error) {
-    console.error("Transcription Service Error:", error);
+    console.error("[TranscriptionService] Error:", getErrorMessage(error));
     throw error;
   }
 };
