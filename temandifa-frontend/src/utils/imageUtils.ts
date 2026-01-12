@@ -1,4 +1,5 @@
 import * as ImageManipulator from "expo-image-manipulator";
+import { Logger } from "../services/logger";
 
 export interface ImageOptimizeOptions {
   maxWidth?: number;
@@ -32,7 +33,7 @@ export async function optimizeImage(
       }
     );
 
-    console.log("[ImageUtils] Optimized image:", {
+    Logger.info("ImageUtils", "Optimized image:", {
       original: uri.substring(0, 50) + "...",
       optimized: result.uri.substring(0, 50) + "...",
       width: result.width,
@@ -41,8 +42,7 @@ export async function optimizeImage(
 
     return result.uri;
   } catch (error) {
-    console.error("[ImageUtils] Failed to optimize image:", error);
-    // Return original if optimization fails
+    Logger.error("ImageUtils", "Failed to optimize image:", error);
     return uri;
   }
 }
@@ -52,8 +52,8 @@ export async function optimizeImage(
  */
 export async function optimizeImageForOCR(uri: string): Promise<string> {
   return optimizeImage(uri, {
-    maxWidth: 1920, // Higher resolution for text
-    quality: 0.85, // Higher quality for text clarity
+    maxWidth: 1920,
+    quality: 0.85,
   });
 }
 
@@ -62,7 +62,7 @@ export async function optimizeImageForOCR(uri: string): Promise<string> {
  */
 export async function optimizeImageForDetection(uri: string): Promise<string> {
   return optimizeImage(uri, {
-    maxWidth: 640, // YOLO works well at 640
-    quality: 0.6, // Lower quality is fine for detection
+    maxWidth: 640,
+    quality: 0.6,
   });
 }

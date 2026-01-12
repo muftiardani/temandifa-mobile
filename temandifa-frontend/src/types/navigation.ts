@@ -13,6 +13,7 @@ export type RootStackParamList = {
   Scan: undefined; // Scan Menu (Camera vs Upload)
   DocumentScanner: undefined; // OCR Camera Only
   Voice: undefined;
+  History: undefined;
 
   // Profile & Settings
   Profile: undefined;

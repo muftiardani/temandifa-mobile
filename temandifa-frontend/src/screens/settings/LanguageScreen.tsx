@@ -1,40 +1,42 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../../context/ThemeContext";
+import { useThemeStore } from "../../stores/themeStore";
+import { ThemedText } from "../../components/atoms/ThemedText";
+import { ThemedView } from "../../components/atoms/ThemedView";
 
 export default function LanguageScreen() {
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
   };
 
   const LanguageItem = ({ code, name }: { code: string; name: string }) => (
-    <TouchableOpacity
-      style={[styles.item, { backgroundColor: theme.colors.surface }]}
-      onPress={() => changeLanguage(code)}
-    >
-      <Text style={[styles.text, { color: theme.colors.text }]}>{name}</Text>
-      {currentLang === code && (
-        <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
-      )}
-    </TouchableOpacity>
+    <ThemedView style={styles.item} variant="surface">
+      <TouchableOpacity
+        style={styles.touchable}
+        onPress={() => changeLanguage(code)}
+      >
+        <ThemedText style={styles.text}>{name}</ThemedText>
+        {currentLang === code && (
+          <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
+        )}
+      </TouchableOpacity>
+    </ThemedView>
   );
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <LanguageItem code="id" name="Bahasa Indonesia" />
       <View
         style={[styles.separator, { backgroundColor: theme.colors.border }]}
       />
       <LanguageItem code="en" name="English" />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -44,10 +46,14 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   item: {
+    // Container for touchable
+  },
+  touchable: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
+    backgroundColor: "transparent", // Let ThemedView bg show
   },
   text: {
     fontSize: 16,

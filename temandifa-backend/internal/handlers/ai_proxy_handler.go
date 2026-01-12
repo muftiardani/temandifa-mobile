@@ -1,359 +1,295 @@
 package handlers
 
 import (
-	"bytes"
-	"io"
-	"mime/multipart"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
+	"github.com/sony/gobreaker"
 	"go.uber.org/zap"
 
-	"temandifa-backend/internal/cache"
+	"temandifa-backend/internal/helpers"
 	"temandifa-backend/internal/logger"
+	"temandifa-backend/internal/metrics"
+	"temandifa-backend/internal/response"
+	"temandifa-backend/internal/services"
 )
 
-// AIProxyHandler handles requests that need to be forwarded to the Python AI Service
+// AIProxyHandler handles requests that need to be forwarded to the Python AI Service via gRPC
 type AIProxyHandler struct {
-	AIServiceURL string
+	aiService services.AIService
 }
 
-func NewAIProxyHandler(aiServiceURL string) *AIProxyHandler {
+func NewAIProxyHandler(aiService services.AIService) *AIProxyHandler {
 	return &AIProxyHandler{
-		AIServiceURL: aiServiceURL,
+		aiService: aiService,
 	}
 }
 
-// DetectObjects forwards the image to the Python YOLOv8 service with caching
+// handleAIServiceError provides consistent error handling for AI Service failures
+// with graceful degradation support (Retry-After headers, circuit breaker info)
+func handleAIServiceError(c *gin.Context, err error, serviceName string) {
+	if err == gobreaker.ErrOpenState {
+		// Circuit breaker is open - provide Retry-After header for graceful degradation
+		c.Header("Retry-After", "30")
+		c.Header("X-Circuit-Breaker-State", "open")
+		response.Error(c, http.StatusServiceUnavailable,
+			response.ErrCodeAIServiceError,
+			"AI Service is temporarily unavailable. Please try again in a few moments.",
+			gin.H{
+				"service":     serviceName,
+				"retry_after": "30s",
+				"fallback":    true,
+			})
+		logger.Warn("AI Service circuit breaker open",
+			zap.String("service", serviceName),
+		)
+		return
+	}
+
+	// Regular AI Service error
+	response.Error(c, http.StatusBadGateway,
+		response.ErrCodeAIServiceError,
+		"AI Service unavailable",
+		gin.H{
+			"service": serviceName,
+			"error":   err.Error(),
+		})
+	logger.Error("AI Service error",
+		zap.String("service", serviceName),
+		zap.Error(err),
+	)
+}
+
+// DetectObjects godoc
+//
+//	@Summary		Detect objects in image
+//	@Description	Detect objects in an image using YOLOv8 with caching (via gRPC)
+//	@Tags			AI
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			file	formData	file				true	"Image file (jpg, png, webp)"
+//	@Success		200		{object}	map[string]interface{}	"Detection results"
+//	@Failure		400		{object}	response.ErrorResponse	"No file uploaded"
+//	@Failure		502		{object}	response.ErrorResponse	"AI Service unavailable"
+//	@Router			/detect [post]
 func (h *AIProxyHandler) DetectObjects(c *gin.Context) {
 	start := time.Now()
 
-	// 1. Get file from request
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
 		logger.Debug("Detection request missing file", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		response.BadRequest(c, "No file uploaded")
 		return
 	}
 	defer file.Close()
 
-	// Read file content for caching
-	fileContent, err := io.ReadAll(file)
+	// Validate and read file
+	uploadedFile, err := helpers.ValidateImageUpload(header, file)
 	if err != nil {
-		logger.Error("Failed to read file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		response.BadRequest(c, err.Error())
 		return
 	}
 
 	logger.Debug("Processing detection request",
-		zap.String("filename", header.Filename),
-		zap.Int("size", len(fileContent)),
+		zap.String("filename", uploadedFile.Filename),
+		zap.Int64("size", uploadedFile.Size),
+		zap.String("mime", uploadedFile.MimeType),
 	)
 
-	// 2. Check cache first
-	cacheKey := cache.GenerateKey("detect", fileContent)
-	cached := cache.Get(c, cacheKey)
-	if cached.Hit {
-		logger.Info("Detection cache hit",
-			zap.String("key", cacheKey),
-			zap.Duration("latency", time.Since(start)),
-		)
-		c.Header("X-Cache", "HIT")
-		c.Header("Content-Type", "application/json")
-		c.Data(http.StatusOK, "application/json", cached.Data)
-		return
-	}
-
-	// 3. Prepare multipart request to Python Service
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", header.Filename)
+	result, fromCache, err := h.aiService.DetectObjects(c.Request.Context(), uploadedFile.Content, uploadedFile.Filename)
 	if err != nil {
-		logger.Error("Failed to create form file for proxy", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create form file"})
+		handleAIServiceError(c, err, "detection")
 		return
 	}
-	_, err = io.Copy(part, bytes.NewReader(fileContent))
+
+	// Set cache header
+	cacheStatus := "MISS"
+	if fromCache {
+		cacheStatus = "HIT"
+	}
+	c.Header("X-Cache", cacheStatus)
+
+	// Fast JSON serialization
+	c.Header("Content-Type", "application/json")
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		logger.Error("Failed to copy file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy file content"})
-		return
-	}
-	writer.Close()
-
-	// 4. Send Request
-	proxyReq, err := http.NewRequest("POST", h.AIServiceURL+"/detect", body)
-	if err != nil {
-		logger.Error("Failed to create proxy request",
-			zap.Error(err),
-			zap.String("url", h.AIServiceURL+"/detect"),
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create proxy request"})
-		return
-	}
-	proxyReq.Header.Set("Content-Type", writer.FormDataContentType())
-
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(proxyReq)
-	if err != nil {
-		logger.Error("AI Service unavailable",
-			zap.Error(err),
-			zap.String("service", "detection"),
-		)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI Service unavailable"})
-		return
-	}
-	defer resp.Body.Close()
-
-	// 5. Read response body
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error("Failed to read AI response", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
-		return
+		c.JSON(http.StatusOK, result)
+	} else {
+		c.Data(http.StatusOK, "application/json", jsonBytes)
 	}
 
-	// 6. Cache successful response
-	if resp.StatusCode == http.StatusOK {
-		go func() {
-			if err := cache.Set(c.Copy(), cacheKey, respBody, cache.Config.DetectionTTL); err != nil {
-				logger.Warn("Failed to cache detection result", zap.Error(err))
-			}
-		}()
-	}
-
-	// 7. Return response to Client
-	c.Header("X-Cache", "MISS")
-	c.Header("Content-Type", resp.Header.Get("Content-Type"))
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
-
-	logger.Info("AI proxy request completed",
+	logger.InfoCtx(c.Request.Context(), "AI proxy request completed",
 		zap.String("service", "detection"),
-		zap.Int("status", resp.StatusCode),
+		zap.Int("status", http.StatusOK),
 		zap.Duration("latency", time.Since(start)),
-		zap.String("cache", "MISS"),
+		zap.String("cache", cacheStatus),
 	)
+	
+	metrics.RecordAIRequest("detection", time.Since(start).Seconds(), "success", fromCache)
 }
 
-// ExtractText forwards the image to the Python OCR service with caching
+// ExtractText godoc
+//
+//	@Summary		Extract text from image (OCR)
+//	@Description	Perform OCR on an image using PaddleOCR via gRPC
+//	@Tags			AI
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			file	formData	file				true	"Image file"
+//	@Param			lang	query		string				false	"Language: en, id, ch"	default(en)
+//	@Router			/ocr [post]
 func (h *AIProxyHandler) ExtractText(c *gin.Context) {
 	start := time.Now()
 
-	// 1. Get file from request
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		logger.Debug("OCR request missing file", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		response.BadRequest(c, "No file uploaded")
 		return
 	}
 	defer file.Close()
 
-	// Read file content for caching
-	fileContent, err := io.ReadAll(file)
+	// Validate and read file
+	uploadedFile, err := helpers.ValidateImageUpload(header, file)
 	if err != nil {
-		logger.Error("Failed to read file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		response.BadRequest(c, err.Error())
 		return
 	}
 
-	logger.Debug("Processing OCR request",
-		zap.String("filename", header.Filename),
-		zap.Int("size", len(fileContent)),
-	)
+	lang := c.DefaultQuery("lang", "en")
 
-	// 2. Check cache first
-	cacheKey := cache.GenerateKey("ocr", fileContent)
-	cached := cache.Get(c, cacheKey)
-	if cached.Hit {
-		logger.Info("OCR cache hit",
-			zap.String("key", cacheKey),
-			zap.Duration("latency", time.Since(start)),
-		)
-		c.Header("X-Cache", "HIT")
-		c.Header("Content-Type", "application/json")
-		c.Data(http.StatusOK, "application/json", cached.Data)
-		return
-	}
-
-	// 3. Prepare multipart request to Python Service
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", header.Filename)
+	result, fromCache, err := h.aiService.ExtractText(c.Request.Context(), uploadedFile.Content, uploadedFile.Filename, lang)
 	if err != nil {
-		logger.Error("Failed to create form file for proxy", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create form file"})
+		handleAIServiceError(c, err, "ocr")
 		return
 	}
-	_, err = io.Copy(part, bytes.NewReader(fileContent))
+
+	cacheStatus := "MISS"
+	if fromCache {
+		cacheStatus = "HIT"
+	}
+	c.Header("X-Cache", cacheStatus)
+
+	c.Header("Content-Type", "application/json")
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		logger.Error("Failed to copy file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy file content"})
-		return
-	}
-	writer.Close()
-
-	// 4. Send Request
-	proxyReq, err := http.NewRequest("POST", h.AIServiceURL+"/ocr", body)
-	if err != nil {
-		logger.Error("Failed to create proxy request",
-			zap.Error(err),
-			zap.String("url", h.AIServiceURL+"/ocr"),
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create proxy request"})
-		return
-	}
-	proxyReq.Header.Set("Content-Type", writer.FormDataContentType())
-
-	client := &http.Client{Timeout: 25 * time.Second}
-	resp, err := client.Do(proxyReq)
-	if err != nil {
-		logger.Error("AI Service unavailable",
-			zap.Error(err),
-			zap.String("service", "ocr"),
-		)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI Service unavailable"})
-		return
-	}
-	defer resp.Body.Close()
-
-	// 5. Read response body
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error("Failed to read AI response", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
-		return
+		c.JSON(http.StatusOK, result)
+	} else {
+		c.Data(http.StatusOK, "application/json", jsonBytes)
 	}
 
-	// 6. Cache successful response
-	if resp.StatusCode == http.StatusOK {
-		go func() {
-			if err := cache.Set(c.Copy(), cacheKey, respBody, cache.Config.OCRTTL); err != nil {
-				logger.Warn("Failed to cache OCR result", zap.Error(err))
-			}
-		}()
-	}
-
-	// 7. Return response to Client
-	c.Header("X-Cache", "MISS")
-	c.Header("Content-Type", resp.Header.Get("Content-Type"))
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
-
-	logger.Info("AI proxy request completed",
-		zap.String("service", "ocr"),
-		zap.Int("status", resp.StatusCode),
-		zap.Duration("latency", time.Since(start)),
-		zap.String("cache", "MISS"),
-	)
+	logger.InfoCtx(c.Request.Context(), "OCR request completed", zap.Duration("latency", time.Since(start)))
+	metrics.RecordAIRequest("ocr", time.Since(start).Seconds(), "success", fromCache)
 }
 
-// TranscribeAudio forwards the audio file to the Python Whisper service with caching
+// TranscribeAudio godoc
+//
+//	@Summary		Transcribe audio to text
+//	@Description	Convert audio to text using Whisper via gRPC
+//	@Tags			AI
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			file	formData	file				true	"Audio file"
+//	@Router			/transcribe [post]
 func (h *AIProxyHandler) TranscribeAudio(c *gin.Context) {
 	start := time.Now()
 
-	// 1. Get file from request
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		logger.Debug("Transcription request missing file", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		response.BadRequest(c, "No file uploaded")
 		return
 	}
 	defer file.Close()
 
-	// Read file content for caching
-	fileContent, err := io.ReadAll(file)
+	// Validate and read file
+	uploadedFile, err := helpers.ValidateAudioUpload(header, file)
 	if err != nil {
-		logger.Error("Failed to read file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		response.BadRequest(c, err.Error())
 		return
 	}
 
-	logger.Debug("Processing transcription request",
-		zap.String("filename", header.Filename),
-		zap.Int("size", len(fileContent)),
-	)
-
-	// 2. Check cache first
-	cacheKey := cache.GenerateKey("transcribe", fileContent)
-	cached := cache.Get(c, cacheKey)
-	if cached.Hit {
-		logger.Info("Transcription cache hit",
-			zap.String("key", cacheKey),
-			zap.Duration("latency", time.Since(start)),
-		)
-		c.Header("X-Cache", "HIT")
-		c.Header("Content-Type", "application/json")
-		c.Data(http.StatusOK, "application/json", cached.Data)
-		return
-	}
-
-	// 3. Prepare multipart request to Python Service
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", header.Filename)
+	result, fromCache, err := h.aiService.TranscribeAudio(c.Request.Context(), uploadedFile.Content, uploadedFile.Filename)
 	if err != nil {
-		logger.Error("Failed to create form file for proxy", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create form file"})
+		handleAIServiceError(c, err, "transcription")
 		return
 	}
-	_, err = io.Copy(part, bytes.NewReader(fileContent))
+
+	cacheStatus := "MISS"
+	if fromCache {
+		cacheStatus = "HIT"
+	}
+	c.Header("X-Cache", cacheStatus)
+
+	c.Header("Content-Type", "application/json")
+	jsonBytes, err := json.Marshal(result)
 	if err != nil {
-		logger.Error("Failed to copy file content", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to copy file content"})
-		return
+		c.JSON(http.StatusOK, result)
+	} else {
+		c.Data(http.StatusOK, "application/json", jsonBytes)
 	}
-	writer.Close()
 
-	// 4. Send Request
-	proxyReq, err := http.NewRequest("POST", h.AIServiceURL+"/transcribe", body)
+	logger.InfoCtx(c.Request.Context(), "Transcription request completed", zap.Duration("latency", time.Since(start)))
+	metrics.RecordAIRequest("transcription", time.Since(start).Seconds(), "success", fromCache)
+}
+
+// AskQuestion godoc
+//
+//	@Summary		Visual Question Answering
+//	@Description	Ask a question about an image (VQA) using Google Gemini via gRPC
+//	@Tags			AI
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			file		formData	file				true	"Image file"
+//	@Param			question	formData	string				true	"Question about the image"
+//	@Router			/ask [post]
+func (h *AIProxyHandler) AskQuestion(c *gin.Context) {
+	start := time.Now()
+
+	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		logger.Error("Failed to create proxy request",
-			zap.Error(err),
-			zap.String("url", h.AIServiceURL+"/transcribe"),
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create proxy request"})
+		response.BadRequest(c, "No file uploaded")
 		return
 	}
-	proxyReq.Header.Set("Content-Type", writer.FormDataContentType())
+	defer file.Close()
 
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(proxyReq)
+	question := c.PostForm("question")
+	if question == "" {
+		response.BadRequest(c, "Question is required")
+		return
+	}
+
+	// Validate and read file
+	uploadedFile, err := helpers.ValidateImageUpload(header, file)
 	if err != nil {
-		logger.Error("AI Service unavailable",
-			zap.Error(err),
-			zap.String("service", "transcription"),
-		)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI Service unavailable"})
+		response.BadRequest(c, err.Error())
 		return
 	}
-	defer resp.Body.Close()
 
-	// 5. Read response body
-	respBody, err := io.ReadAll(resp.Body)
+	result, fromCache, err := h.aiService.VisualQuestionAnswering(c.Request.Context(), uploadedFile.Content, uploadedFile.Filename, question)
 	if err != nil {
-		logger.Error("Failed to read AI response", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read response"})
+		handleAIServiceError(c, err, "vqa")
 		return
 	}
 
-	// 6. Cache successful response
-	if resp.StatusCode == http.StatusOK {
-		go func() {
-			if err := cache.Set(c.Copy(), cacheKey, respBody, cache.Config.TranscriptionTTL); err != nil {
-				logger.Warn("Failed to cache transcription result", zap.Error(err))
-			}
-		}()
+	cacheStatus := "MISS"
+	if fromCache {
+		cacheStatus = "HIT"
+	}
+	c.Header("X-Cache", cacheStatus)
+
+	c.Header("Content-Type", "application/json")
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		c.JSON(http.StatusOK, result)
+	} else {
+		c.Data(http.StatusOK, "application/json", jsonBytes)
 	}
 
-	// 7. Return response to Client
-	c.Header("X-Cache", "MISS")
-	c.Header("Content-Type", resp.Header.Get("Content-Type"))
-	c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), respBody)
-
-	logger.Info("AI proxy request completed",
-		zap.String("service", "transcription"),
-		zap.Int("status", resp.StatusCode),
-		zap.Duration("latency", time.Since(start)),
-		zap.String("cache", "MISS"),
-	)
+	logger.InfoCtx(c.Request.Context(), "VQA request completed", zap.Duration("latency", time.Since(start)))
+	metrics.RecordAIRequest("vqa", time.Since(start).Seconds(), "success", fromCache)
 }

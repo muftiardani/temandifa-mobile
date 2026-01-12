@@ -76,7 +76,11 @@ func GinRecovery() gin.HandlerFunc {
 				)
 
 				c.AbortWithStatusJSON(500, gin.H{
-					"error": "Internal server error",
+					"success": false,
+					"error": gin.H{
+						"code":    "INTERNAL_ERROR",
+						"message": "Internal server error",
+					},
 				})
 			}
 		}()

@@ -1,15 +1,16 @@
 package models
 
-import "gorm.io/gorm"
+import "time"
 
+// User represents the user entity
 type User struct {
-	gorm.Model
-	Email          string `gorm:"uniqueIndex;not null" json:"email"`
-	Password       string `json:"-"` // Don't return password in JSON
-	FullName       string `json:"full_name"`
-	ProfilePicture string `json:"profile_picture"` // URL to profile image
-	Role           string `gorm:"default:'user'" json:"role"` // 'user' or 'admin'
-
-	// Relations
-	EmergencyContacts []EmergencyContact `json:"emergency_contacts,omitempty"`
+	ID              uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	DeletedAt       *time.Time     `gorm:"index" json:"deleted_at,omitempty"`
+	Email           string         `gorm:"uniqueIndex;not null" json:"email"`
+	Password        string         `json:"-"`
+	FullName        string         `json:"full_name"`
+	ProfilePicture  string         `json:"profile_picture"`
+	Role            string         `gorm:"default:user" json:"role"`
 }

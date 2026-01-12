@@ -1,49 +1,50 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView } from "react-native";
-import { useTheme } from "../../context/ThemeContext";
+import { StyleSheet, ScrollView } from "react-native";
+import { useThemeStore } from "../../stores/themeStore";
+import { ThemedText } from "../../components/atoms/ThemedText";
+import { ThemedView } from "../../components/atoms/ThemedView";
 
 export default function PrivacyScreen() {
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={[styles.title, { color: theme.colors.text }]}>
-        Kebijakan Privasi
-      </Text>
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <ThemedText variant="title" style={styles.title}>
+          Kebijakan Privasi
+        </ThemedText>
 
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Terakhir Diperbarui: 1 Januari 2026
-      </Text>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Terakhir Diperbarui: 1 Januari 2026
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.text }]}>
-        Pengumpulan Data
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        TemanDifa mengumpulkan data yang diperlukan untuk fungsi utama aplikasi,
-        seperti akses kamera untuk deteksi objek dan akses mikrofon untuk
-        perintah suara. Kami tidak menjual data Anda ke pihak ketiga.
-      </Text>
+        <ThemedText variant="subtitle" style={styles.heading}>
+          Pengumpulan Data
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          TemanDifa mengumpulkan data yang diperlukan untuk fungsi utama
+          aplikasi, seperti akses kamera untuk deteksi objek dan akses mikrofon
+          untuk perintah suara. Kami tidak menjual data Anda ke pihak ketiga.
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.text }]}>
-        Keamanan Data
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Semua data transmisi (gambar dan suara) dikirim menggunakan protokol
-        aman (HTTPS). Data sensitif seperti password disimpan dalam bentuk
-        terenkripsi (Hashed).
-      </Text>
+        <ThemedText variant="subtitle" style={styles.heading}>
+          Keamanan Data
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Semua data transmisi (gambar dan suara) dikirim menggunakan protokol
+          aman (HTTPS). Data sensitif seperti password disimpan dalam bentuk
+          terenkripsi (Hashed).
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.text }]}>
-        Izin Akses
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Aplikasi ini memerlukan izin akses Kamera dan Mikrofon untuk bekerja.
-        Anda dapat mencabut izin ini kapan saja melalui pengaturan HP Anda.
-      </Text>
-    </ScrollView>
+        <ThemedText variant="subtitle" style={styles.heading}>
+          Izin Akses
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Aplikasi ini memerlukan izin akses Kamera dan Mikrofon untuk bekerja.
+          Anda dapat mencabut izin ini kapan saja melalui pengaturan HP Anda.
+        </ThemedText>
+      </ScrollView>
+    </ThemedView>
   );
 }
 

@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import Toast from "react-native-toast-message";
 import { Audio } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -19,14 +13,18 @@ import Animated, {
   cancelAnimation,
 } from "react-native-reanimated";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../context/ThemeContext";
+import { useThemeStore } from "../stores/themeStore";
 
 import { transcribeAudio } from "../services/transcriptionService";
-import { LoadingOverlay } from "../components/LoadingOverlay";
+import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
+import { Logger } from "../services/logger";
+import { ThemedText } from "../components/atoms/ThemedText";
+import { ThemedView } from "../components/atoms/ThemedView";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
 export default function VoiceScreen() {
   const { t } = useTranslation();
-  const { theme, isDark } = useTheme();
+  const { theme, isDark } = useThemeStore();
 
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
@@ -34,7 +32,6 @@ export default function VoiceScreen() {
   const [transcription, setTranscription] = useState("");
   const [status, setStatus] = useState(t("voice.status_idle"));
 
-  // Animation values
   const scale = useSharedValue(1);
   const opacity = useSharedValue(0.3);
 
@@ -76,10 +73,12 @@ export default function VoiceScreen() {
       if (permissionResponse?.status !== "granted") {
         const perms = await requestPermission();
         if (perms.status !== "granted") {
-          Alert.alert(
-            t("permissions.denied_title"),
-            t("permissions.mic_required")
-          );
+          Toast.show({
+            type: "error",
+            text1: t("permissions.denied_title"),
+            text2: t("permissions.mic_required"),
+            visibilityTime: 4000,
+          });
           return;
         }
       }
@@ -97,7 +96,7 @@ export default function VoiceScreen() {
       setStatus(t("voice.status_listening"));
       startAnimation();
     } catch (err) {
-      console.error("Failed to start recording", err);
+      Logger.error("VoiceScreen", "Failed to start recording", err);
       Alert.alert(t("common.error"), t("voice.error_start"));
     }
   }
@@ -116,13 +115,11 @@ export default function VoiceScreen() {
 
       if (uri) {
         const result = await transcribeAudio(uri);
-        // Corrected: result is directly TranscriptionResult (unwrapped by service)
         setTranscription(result.text || "");
         setStatus(t("voice.status_done"));
       }
     } catch (error) {
-      console.error(error);
-      setStatus(t("voice.status_failed"));
+      Logger.error("VoiceScreen", "Failed to stop recording", error);
       Alert.alert(t("voice.status_failed"), t("voice.error_process"));
     } finally {
       setIsLoading(false);
@@ -138,13 +135,11 @@ export default function VoiceScreen() {
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={[styles.statusText, { color: theme.colors.text }]}>
+        <ThemedText variant="title" style={styles.statusText}>
           {status}
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={styles.micContainer}>
@@ -154,60 +149,66 @@ export default function VoiceScreen() {
               styles.pulseCircle,
               animatedStyle,
               {
-                backgroundColor: isDark
-                  ? "rgba(33, 150, 243, 0.3)"
-                  : "rgba(33, 150, 243, 0.5)",
+                backgroundColor: theme.colors.primary + (isDark ? "4D" : "80"), // 30% vs 50% opacity
               },
             ]}
           />
         )}
 
-        <TouchableOpacity
+        <AccessibleTouchableOpacity
           style={[
             styles.micButton,
             recording && styles.micButtonActive,
-            { shadowColor: theme.colors.primary },
+            {
+              backgroundColor: recording
+                ? theme.colors.error
+                : theme.colors.primary,
+              shadowColor: recording
+                ? theme.colors.error
+                : theme.colors.primary,
+            },
           ]}
           onPress={handlePress}
           activeOpacity={0.8}
+          accessibilityLabel={
+            recording
+              ? t("voice.stop_recording_hint")
+              : t("voice.start_recording_hint")
+          }
+          accessibilityHint={
+            recording
+              ? "Ketuk untuk berhenti merekam dan memproses suara"
+              : "Ketuk untuk mulai merekam suara"
+          }
+          accessibilityRole="button"
         >
           <Ionicons name={recording ? "stop" : "mic"} size={50} color="white" />
-        </TouchableOpacity>
+        </AccessibleTouchableOpacity>
       </View>
 
-      <View
-        style={[
-          styles.resultContainer,
-          { backgroundColor: theme.colors.surface },
-        ]}
-      >
+      <ThemedView style={styles.resultContainer} variant="surface">
         {transcription ? (
           <>
-            <Text
-              style={[
-                styles.resultLabel,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
+            <ThemedText variant="subtitle" style={styles.resultLabel}>
               {t("voice.result_label")}
-            </Text>
+            </ThemedText>
             <ScrollView contentContainerStyle={styles.scrollContent}>
-              <Text style={[styles.resultText, { color: theme.colors.text }]}>
-                {transcription}
-              </Text>
+              <ThemedText style={styles.resultText}>{transcription}</ThemedText>
             </ScrollView>
           </>
         ) : (
-          <Text
-            style={[styles.hintText, { color: theme.colors.textSecondary }]}
+          <ThemedText
+            variant="subtitle"
+            style={styles.hintText}
+            color={theme.colors.textSecondary}
           >
             {t("voice.hint")}
-          </Text>
+          </ThemedText>
         )}
-      </View>
+      </ThemedView>
 
       {isLoading && <LoadingOverlay />}
-    </View>
+    </ThemedView>
   );
 }
 
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#2196F3", // Android Blue
+    backgroundColor: "#2196F3", // Default, overwritten by inline style
     justifyContent: "center",
     alignItems: "center",
     shadowOffset: { width: 0, height: 8 },
@@ -252,8 +253,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   micButtonActive: {
-    backgroundColor: "#F44336", // Red for stop
-    shadowColor: "#F44336",
+    // backgroundColor handled by inline style for theme
   },
   resultContainer: {
     flex: 1,

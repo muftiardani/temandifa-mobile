@@ -1,0 +1,135 @@
+# ==============================================================================
+# TemanDifa AI Service - GPU Optimized Dockerfile
+# Base: NVIDIA CUDA 12.1 + Ubuntu 22.04
+# Optimized for smaller image size and faster builds
+# ==============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Model Downloader & Exporter
+# (Reuse the logic from CPU Dockerfile - Exporting can be done on CPU)
+# -----------------------------------------------------------------------------
+FROM python:3.10-slim AS model-downloader
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.build.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.build.txt
+
+# Copy download script
+COPY scripts/download_models.py /app/scripts/
+
+# Create directory for models
+RUN mkdir -p /app/models
+
+# Set environment variables for download locations
+ENV HOME="/app/models_cache" \
+    XDG_CACHE_HOME="/app/models_cache/.cache" \
+    WHISPER_CACHE="/app/models_cache/.cache/whisper"
+
+# Run download and export
+RUN python scripts/download_models.py
+
+# Organize artifacts
+RUN mv yolov8n.onnx /app/models/ || echo "No ONNX model found to move"
+
+
+# -----------------------------------------------------------------------------
+# Stage 2: GPU Runtime Builder 
+# -----------------------------------------------------------------------------
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /app
+
+# Install Python 3.10 and build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-venv \
+    python3.10-dev \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python3.10 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy runtime requirements (clean list)
+COPY requirements.txt .
+
+# Install dependencies with GPU modifications
+RUN pip install --no-cache-dir --upgrade pip && \
+    # 1. Install standard requirements
+    pip install --no-cache-dir -r requirements.txt && \
+    # 2. Swap ONNX Runtime CPU -> GPU
+    pip uninstall -y onnxruntime && \
+    pip install --no-cache-dir onnxruntime-gpu && \
+    # 3. Install PaddlePaddle GPU
+    pip install --no-cache-dir paddlepaddle-gpu==2.6.0.post120 -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html
+
+
+# -----------------------------------------------------------------------------
+# Stage 3: GPU Runtime
+# -----------------------------------------------------------------------------
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    YOLO_CONFIG_DIR="/app/models" \
+    HF_HOME="/app/models/huggingface" \
+    XDG_CACHE_HOME="/home/appuser/.cache" \
+    HOME="/home/appuser"
+
+WORKDIR /app
+
+# Install minimal runtime libs
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-venv \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy virtual environment from builder (Contains GPU deps)
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy pre-downloaded/exported models from downloader (Stage 1)
+COPY --from=model-downloader /app/models /app/models
+# Copy Whisper and PaddleOCR caches
+COPY --from=model-downloader /app/models_cache/.cache /home/appuser/.cache
+COPY --from=model-downloader /app/models_cache/.paddleocr /home/appuser/.paddleocr
+
+# Copy application code
+COPY --chown=appuser:appuser app/ /app/app/
+
+# Set permissions
+RUN chown -R appuser:appuser /app /home/appuser
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+# Run with optimized settings
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

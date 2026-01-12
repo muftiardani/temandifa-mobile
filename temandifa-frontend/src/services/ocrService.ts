@@ -1,10 +1,11 @@
 import apiClient, { getErrorMessage } from "./apiClient";
-import { OcrApiResponse } from "../types/ocr";
+import { OcrResponseSchema, OcrResponse } from "../schemas/ocr";
+import { Logger } from "./logger";
 
-console.log("[OCRService] Initialized");
+Logger.info("OCRService", "Initialized");
 
-export const scanText = async (imageUri: string): Promise<OcrApiResponse> => {
-  console.log("[OCRService] Sending image for OCR...");
+export const scanText = async (imageUri: string): Promise<OcrResponse> => {
+  Logger.info("OCRService", "Sending image for OCR...");
   const formData = new FormData();
   // @ts-ignore
   formData.append("file", {
@@ -14,15 +15,20 @@ export const scanText = async (imageUri: string): Promise<OcrApiResponse> => {
   });
 
   try {
-    const response = await apiClient.post<OcrApiResponse>("/ocr", formData, {
+    const response = await apiClient.post("/ocr", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
       timeout: 25000, // 25 seconds for OCR (text extraction takes longer)
     });
-    return response.data;
+
+    // Validate with Zod
+    Logger.info("OCRService", "Validating OCR response...");
+    const parsed = OcrResponseSchema.parse(response.data);
+
+    return parsed;
   } catch (error) {
-    console.error("[OCRService] Error:", getErrorMessage(error));
+    Logger.error("OCRService", "Error:", getErrorMessage(error));
     throw error;
   }
 };

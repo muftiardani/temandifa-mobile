@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,20 +6,20 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Alert,
   SafeAreaView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import * as Speech from "expo-speech";
 import { useTranslation } from "react-i18next";
 
-import { scanText } from "../services/ocrService";
+import { useOCRScan } from "../hooks/useOCRScan";
 import { RootStackParamList } from "../types/navigation";
-import { LoadingOverlay } from "../components/LoadingOverlay";
-import { useTheme } from "../context/ThemeContext";
+import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
+import { useThemeStore } from "../stores/themeStore";
+import { ThemedText } from "../components/atoms/ThemedText";
+import { ThemedView } from "../components/atoms/ThemedView";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -29,96 +29,32 @@ type ScanScreenNavigationProp = NativeStackNavigationProp<
 export default function ScanScreen() {
   const navigation = useNavigation<ScanScreenNavigationProp>();
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
-  const [loading, setLoading] = useState(false);
-  const [ocrResult, setOcrResult] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // Use Custom Hook for Logic
+  const { loading, ocrResult, selectedImage, handleUpload, reset, speak } =
+    useOCRScan();
 
-  // Navigasi ke Layar Kamera Khusus Dokumen
   const handleCamera = () => {
     navigation.navigate("DocumentScanner");
   };
 
-  // Logika Upload Galeri
-  const handleUpload = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== "granted") {
-      Alert.alert(
-        t("permissions.required_title"),
-        t("permissions.gallery_required")
-      );
-      return;
-    }
-
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const uri = result.assets[0].uri;
-        setSelectedImage(uri);
-        processImage(uri);
-      }
-    } catch (error) {
-      console.error("Pick Image Error:", error);
-      Alert.alert(t("common.error"), t("scan.error_gallery"));
-    }
-  };
-
-  const processImage = async (uri: string) => {
-    setLoading(true);
-    setOcrResult(null);
-    try {
-      const response = await scanText(uri);
-      if (response.data) {
-        const text = response.data.full_text;
-        if (text) {
-          setOcrResult(text);
-          Speech.speak(t("scan.text_found") + " " + text);
-        } else {
-          setOcrResult(t("scan.no_text"));
-          Speech.speak(t("scan.no_text"));
-        }
-      }
-    } catch (error) {
-      console.error("OCR Error:", error);
-      Alert.alert(t("common.error"), t("scan.error_process"));
-      Speech.speak(t("scan.failed"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const reset = () => {
-    setOcrResult(null);
-    setSelectedImage(null);
-    Speech.stop();
-  };
-
-  // Tampilan Hasil Scan (Preview & Teks)
   if (selectedImage && ocrResult !== null) {
     return (
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
       >
-        <View
+        <ThemedView
           style={[
             styles.resultHeader,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
+            { borderBottomColor: theme.colors.border },
           ]}
+          variant="surface"
         >
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          <ThemedText variant="title" style={styles.headerTitle}>
             {t("scan.result_title")}
-          </Text>
-        </View>
+          </ThemedText>
+        </ThemedView>
 
         <Image
           source={{ uri: selectedImage }}
@@ -126,106 +62,123 @@ export default function ScanScreen() {
           resizeMode="contain"
         />
 
-        <View
-          style={[styles.textArea, { backgroundColor: theme.colors.surface }]}
-        >
-          <Text
-            style={[styles.sectionLabel, { color: theme.colors.textSecondary }]}
-          >
+        <ThemedView style={styles.textArea} variant="surface">
+          <ThemedText variant="subtitle" style={styles.sectionLabel}>
             {t("scan.result_text")}
-          </Text>
+          </ThemedText>
           <ScrollView style={styles.resultScroll}>
-            <Text style={[styles.resultText, { color: theme.colors.text }]}>
-              {ocrResult}
-            </Text>
+            <ThemedText style={styles.resultText}>{ocrResult}</ThemedText>
           </ScrollView>
-        </View>
+        </ThemedView>
 
-        <View
-          style={[
-            styles.resultFooter,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
+        <ThemedView style={styles.resultFooter} variant="surface">
+          <AccessibleTouchableOpacity
             style={[
               styles.actionButton,
               { backgroundColor: theme.colors.primary },
             ]}
-            onPress={() => Speech.speak(ocrResult || "")}
+            onPress={speak}
+            accessibilityLabel={t("scan.read")}
+            accessibilityRole="button"
           >
             <Ionicons name="volume-high" size={24} color="white" />
-            <Text style={styles.actionText}>{t("scan.read")}</Text>
-          </TouchableOpacity>
+            <ThemedText style={styles.actionText} color="white">
+              {t("scan.read")}
+            </ThemedText>
+          </AccessibleTouchableOpacity>
 
-          <TouchableOpacity
+          <AccessibleTouchableOpacity
             style={[
               styles.actionButton,
               styles.secondaryButton,
               {
-                backgroundColor: theme.colors.card,
                 borderColor: theme.colors.border,
+                backgroundColor: theme.colors.background,
               },
             ]}
             onPress={reset}
+            accessibilityLabel={t("scan.retry")}
+            accessibilityRole="button"
           >
             <Ionicons name="refresh" size={24} color={theme.colors.text} />
-            <Text style={[styles.actionText, { color: theme.colors.text }]}>
-              {t("scan.retry")}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <ThemedText style={styles.actionText}>{t("scan.retry")}</ThemedText>
+          </AccessibleTouchableOpacity>
+        </ThemedView>
 
         {loading && <LoadingOverlay />}
       </SafeAreaView>
     );
   }
 
-  // Tampilan Menu Utama Scan
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <View style={styles.menuContainer}>
-        <Text style={[styles.menuHeader, { color: theme.colors.text }]}>
+        <ThemedText variant="title" style={styles.menuHeader}>
           {t("scan.method_title")}
-        </Text>
+        </ThemedText>
 
-        {/* Button Kamera */}
-        <TouchableOpacity
-          style={[styles.menuCard, styles.cardCamera]}
+        <AccessibleTouchableOpacity
+          style={[
+            styles.menuCard,
+            { backgroundColor: theme.colors.featureCamera },
+          ]}
           onPress={handleCamera}
+          accessibilityLabel={t("menu.camera")}
+          accessibilityRole="button"
         >
           <View style={styles.iconCircle}>
-            <Ionicons name="camera" size={40} color="#EA4335" />
+            <Ionicons
+              name="camera"
+              size={40}
+              color={theme.colors.featureCamera}
+            />
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>{t("menu.camera")}</Text>
-            <Text style={styles.cardSubtitle}>{t("scan.camera_desc")}</Text>
+            <ThemedText variant="title" style={styles.cardTitle} color="white">
+              {t("menu.camera")}
+            </ThemedText>
+            <ThemedText
+              style={styles.cardSubtitle}
+              color="rgba(255,255,255,0.9)"
+            >
+              {t("scan.camera_desc")}
+            </ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={24} color="white" />
-        </TouchableOpacity>
+        </AccessibleTouchableOpacity>
 
-        {/* Button Upload */}
-        <TouchableOpacity
-          style={[styles.menuCard, styles.cardUpload]}
+        <AccessibleTouchableOpacity
+          style={[
+            styles.menuCard,
+            { backgroundColor: theme.colors.featureScan },
+          ]}
           onPress={handleUpload}
+          accessibilityLabel={t("menu.gallery")}
+          accessibilityRole="button"
         >
           <View style={styles.iconCircle}>
-            <Ionicons name="images" size={40} color="#00BFA5" />
+            <Ionicons
+              name="images"
+              size={40}
+              color={theme.colors.featureScan}
+            />
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>{t("menu.gallery")}</Text>
-            <Text style={styles.cardSubtitle}>{t("scan.gallery_desc")}</Text>
+            <ThemedText variant="title" style={styles.cardTitle} color="white">
+              {t("menu.gallery")}
+            </ThemedText>
+            <ThemedText
+              style={styles.cardSubtitle}
+              color="rgba(255,255,255,0.9)"
+            >
+              {t("scan.gallery_desc")}
+            </ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={24} color="white" />
-        </TouchableOpacity>
+        </AccessibleTouchableOpacity>
       </View>
       {loading && <LoadingOverlay />}
-    </View>
+    </ThemedView>
   );
 }
 
@@ -258,10 +211,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cardCamera: {
-    backgroundColor: "#EA4335", // Red/Orange
+    // backgroundColor handled inline with theme
   },
   cardUpload: {
-    backgroundColor: "#00BFA5", // Teal/Cyan
+    // backgroundColor handled inline with theme
   },
   iconCircle: {
     width: 60,
@@ -285,7 +238,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.9)",
   },
-  // Result Styles
   resultHeader: {
     padding: 16,
     borderBottomWidth: 1,
@@ -298,7 +250,7 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "100%",
     height: 250,
-    backgroundColor: "#333",
+    backgroundColor: "#333", // Dark gray placeholder can stay or use a neutral theme color
   },
   textArea: {
     flex: 1,
@@ -324,7 +276,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: "#2196F3",
+    // backgroundColor: "#2196F3", // Replaced by theme
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

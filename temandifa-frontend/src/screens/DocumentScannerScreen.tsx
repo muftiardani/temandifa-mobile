@@ -3,8 +3,6 @@ import { useState, useRef } from "react";
 import {
   Button,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
   Image,
   Alert,
@@ -12,23 +10,32 @@ import {
 } from "react-native";
 import * as Speech from "expo-speech";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { useThemeStore } from "../stores/themeStore";
+import { ThemedText } from "../components/atoms/ThemedText";
+import { ThemedView } from "../components/atoms/ThemedView";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
 import { scanText } from "../services/ocrService";
-import { LoadingOverlay } from "../components/LoadingOverlay";
+import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
+import { Logger } from "../services/logger";
+import { optimizeImageForOCR } from "../utils/imageUtils";
+import { useOCRScan } from "../hooks/useOCRScan";
 
 export default function DocumentScannerScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
+  // We keep local image state for the preview, as the hook's selectedImage is for the gallery picker
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // OCR Result
-  const [ocrText, setOcrText] = useState<string>("");
+  const { t } = useTranslation();
+  const { theme } = useThemeStore();
+
+  const { loading, ocrResult, processImage, reset: resetHook } = useOCRScan();
 
   const cameraRef = useRef<CameraView>(null);
 
   if (!permission) {
-    // Permission Status Loading
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" />
@@ -38,11 +45,16 @@ export default function DocumentScannerScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>
-          Akses kamera diperlukan untuk memindai dokumen.
-        </Text>
-        <Button onPress={requestPermission} title="Izinkan Akses Kamera" />
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <ThemedText style={styles.message}>
+          {t("document_scanner.permission_msg")}
+        </ThemedText>
+        <Button
+          onPress={requestPermission}
+          title={t("document_scanner.permission_grant")}
+        />
       </View>
     );
   }
@@ -51,48 +63,24 @@ export default function DocumentScannerScreen() {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.7, // Slightly higher quality for text
+          quality: 0.7,
           base64: false,
         });
         if (photo) {
-          setImage(photo.uri);
-          processImage(photo.uri);
+          const optimizedUri = await optimizeImageForOCR(photo.uri);
+          setImage(optimizedUri);
+          await processImage(optimizedUri);
         }
       } catch (e) {
-        console.error("Camera Error:", e);
-        Alert.alert("Error", "Gagal mengambil foto.");
+        Logger.error("DocumentScanner", "Camera Error:", e);
+        Alert.alert(t("common.error"), t("document_scanner.error_capture"));
       }
-    }
-  }
-
-  async function processImage(uri: string) {
-    setLoading(true);
-    setOcrText("");
-    try {
-      const response = await scanText(uri);
-      if (response.data) {
-        const text = response.data.full_text;
-        if (text) {
-          setOcrText(text);
-          Speech.speak("Teks ditemukan. " + text);
-        } else {
-          setOcrText("Teks tidak terbaca dengan jelas.");
-          Speech.speak("Maaf, teks tidak terbaca.");
-        }
-      }
-    } catch (error) {
-      console.error("OCR Service Error:", error);
-      Alert.alert("Gagal", "Koneksi ke server gagal atau terjadi kesalahan.");
-      Speech.speak("Gagal memproses gambar.");
-    } finally {
-      setLoading(false);
     }
   }
 
   function reset() {
     setImage(null);
-    setOcrText("");
-    Speech.stop();
+    resetHook();
   }
 
   function toggleCameraFacing() {
@@ -107,34 +95,67 @@ export default function DocumentScannerScreen() {
         {loading && <LoadingOverlay />}
 
         {!loading && (
-          <View style={styles.resultPanel}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>Hasil Deteksi Teks</Text>
+          <ThemedView style={styles.resultPanel} variant="surface">
+            <View
+              style={[
+                styles.resultHeader,
+                { borderBottomColor: theme.colors.border },
+              ]}
+            >
+              <ThemedText variant="title" style={styles.resultTitle}>
+                {t("document_scanner.result_title")}
+              </ThemedText>
             </View>
 
             <View style={styles.resultContent}>
-              <Text style={styles.ocrText}>{ocrText || "..."}</Text>
+              <ThemedText style={styles.ocrText}>
+                {ocrResult || "..."}
+              </ThemedText>
             </View>
 
             <View style={styles.resultActions}>
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={() => Speech.speak(ocrText)}
+              <AccessibleTouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+                onPress={() =>
+                  requestAnimationFrame(() => Speech.speak(ocrResult || ""))
+                }
+                accessibilityLabel={t("document_scanner.read")}
+                accessibilityRole="button"
               >
                 <Ionicons name="volume-high" size={24} color="white" />
-                <Text style={styles.actionBtnText}>Baca</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.secondaryBtn]}
+                <ThemedText style={styles.actionBtnText}>
+                  {t("document_scanner.read")}
+                </ThemedText>
+              </AccessibleTouchableOpacity>
+              <AccessibleTouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
                 onPress={reset}
+                accessibilityLabel={t("document_scanner.retake")}
+                accessibilityRole="button"
               >
-                <Ionicons name="camera-outline" size={24} color="#333" />
-                <Text style={[styles.actionBtnText, { color: "#333" }]}>
-                  Foto Ulang
-                </Text>
-              </TouchableOpacity>
+                <Ionicons
+                  name="camera-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
+                <ThemedText
+                  style={[styles.actionBtnText, { color: theme.colors.text }]}
+                >
+                  {t("document_scanner.retake")}
+                </ThemedText>
+              </AccessibleTouchableOpacity>
             </View>
-          </View>
+          </ThemedView>
         )}
       </View>
     );
@@ -143,17 +164,27 @@ export default function DocumentScannerScreen() {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-        {/* Flip Camera Button */}
-        <TouchableOpacity style={styles.flipBtn} onPress={toggleCameraFacing}>
+        <AccessibleTouchableOpacity
+          style={styles.flipBtn}
+          onPress={toggleCameraFacing}
+          accessibilityLabel="Flip Camera"
+          accessibilityRole="button"
+        >
           <Ionicons name="camera-reverse" size={28} color="white" />
-        </TouchableOpacity>
+        </AccessibleTouchableOpacity>
 
-        {/* Capture Button */}
         <View style={styles.bottomControls}>
-          <TouchableOpacity style={styles.captureBtn} onPress={takePicture}>
+          <AccessibleTouchableOpacity
+            style={styles.captureBtn}
+            onPress={takePicture}
+            accessibilityLabel="Capture"
+            accessibilityRole="button"
+          >
             <View style={styles.captureInner} />
-          </TouchableOpacity>
-          <Text style={styles.captureHint}>Ketuk untuk Memindai</Text>
+          </AccessibleTouchableOpacity>
+          <ThemedText style={styles.captureHint} color="white">
+            {t("document_scanner.tap_hint")}
+          </ThemedText>
         </View>
       </CameraView>
     </View>
@@ -169,7 +200,7 @@ const styles = StyleSheet.create({
   message: {
     textAlign: "center",
     paddingBottom: 10,
-    color: "white",
+    // color: "white", // Handled by ThemedText
   },
   camera: {
     flex: 1,
@@ -246,7 +277,6 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
   },
   resultContent: {
     marginBottom: 24,
@@ -255,7 +285,6 @@ const styles = StyleSheet.create({
   ocrText: {
     fontSize: 18,
     lineHeight: 28,
-    color: "#444",
   },
   resultActions: {
     flexDirection: "row",
@@ -263,7 +292,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    backgroundColor: "#2196F3",
+    // backgroundColor: "#2196F3", // Handled inline
     borderRadius: 12,
     padding: 16,
     flexDirection: "row",
@@ -272,9 +301,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   secondaryBtn: {
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5", // Handled inline
     borderWidth: 1,
-    borderColor: "#ddd",
+    // borderColor: "#ddd", // Handled inline
   },
   actionBtnText: {
     color: "white",

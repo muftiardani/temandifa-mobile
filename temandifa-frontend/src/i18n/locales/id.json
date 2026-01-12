@@ -9,7 +9,11 @@
     "voice": "Suara",
     "camera_obj": "Kamera (Objek)",
     "profile": "Profil Saya",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "gallery": "Galeri",
+    "offline_syncing": "Menyinkronkan...",
+    "offline_waiting": "{{count}} menunggu sinkronisasi",
+    "offline_mode": "Mode Offline - Data akan disimpan lokal"
   },
   "settings": {
     "title": "Pengaturan",
@@ -25,8 +29,72 @@
   "common": {
     "back": "Kembali",
     "loading": "Memuat...",
+    "processing": "Memproses...",
     "error": "Terjadi Kesalahan",
-    "success": "Berhasil"
+    "success": "Berhasil",
+    "cancel": "Batal",
+    "confirm": "Konfirmasi",
+    "delete": "Hapus",
+    "save": "Simpan",
+    "retry": "Coba Lagi",
+    "close": "Tutup"
+  },
+  "auth": {
+    "login": "Masuk",
+    "logout": "Keluar",
+    "register": "Daftar",
+    "email": "Email",
+    "password": "Kata Sandi",
+    "confirm_password": "Konfirmasi Kata Sandi",
+    "full_name": "Nama Lengkap",
+    "forgot_password": "Lupa Kata Sandi?",
+    "no_account": "Belum punya akun?",
+    "has_account": "Sudah punya akun?",
+    "login_guest": "Masuk sebagai Tamu",
+    "login_biometric": "Masuk dengan Biometrik",
+    "register_success": "Pendaftaran berhasil!",
+    "login_success": "Berhasil masuk!",
+    "logout_confirm": "Yakin ingin keluar?",
+    "logout_title": "Konfirmasi Keluar",
+    "cancel_btn": "Batal",
+    "logout_btn": "Keluar",
+    "biometric_success": "Login biometrik dinonaktifkan.",
+    "biometric_enable_success": "Login biometrik berhasil diaktifkan!",
+    "biometric_fail": "Gagal mengaktifkan biometrik. Coba lagi.",
+    "password_empty": "Password tidak boleh kosong",
+    "confirm_password_title": "Konfirmasi Password",
+    "confirm_password_desc": "Masukkan password Anda untuk mengaktifkan biometrik.",
+    "activate": "Aktifkan",
+    "join_date": "Bergabung sejak {{year}}",
+    "biometric_login_opt": "Login Biometrik",
+    "active": "Aktif",
+    "inactive": "Nonaktif",
+    "activity_history": "Riwayat Aktivitas",
+    "sign_out": "Keluar Akun",
+    "history_delete_title": "Hapus Riwayat",
+    "history_delete_confirm": "Apakah Anda yakin ingin menghapus item ini?",
+    "delete": "Hapus"
+  },
+  "document_scanner": {
+    "permission_msg": "Akses kamera diperlukan untuk memindai dokumen.",
+    "permission_grant": "Izinkan Akses Kamera",
+    "result_title": "Hasil Deteksi Teks",
+    "read": "Baca",
+    "retake": "Foto Ulang",
+    "tap_hint": "Ketuk untuk Memindai",
+    "no_text": "Teks tidak terbaca dengan jelas.",
+    "error_capture": "Gagal mengambil gambar",
+    "error_process": "Gagal memproses dokumen"
+  },
+  "errors": {
+    "network": "Tidak ada koneksi internet",
+    "timeout": "Permintaan timeout",
+    "server": "Terjadi kesalahan server",
+    "unauthorized": "Sesi anda telah berakhir",
+    "validation": "Data tidak valid",
+    "unknown": "Terjadi kesalahan tidak dikenal",
+    "crash_title": "Oops! Terjadi Kesalahan",
+    "crash_message": "Aplikasi mengalami masalah. Silakan coba lagi."
   },
   "voice": {
     "status_idle": "Ketuk mic untuk merekam",
@@ -39,10 +107,36 @@
     "error_start": "Gagal memulai perekaman.",
     "error_process": "Tidak dapat memproses suara."
   },
+  "camera": {
+    "title": "Deteksi Objek",
+    "capture": "Ambil Foto",
+    "detecting": "Mendeteksi objek...",
+    "result": "{{count}} objek terdeteksi",
+    "no_object": "Tidak ada objek terdeteksi",
+    "error_capture": "Gagal mengambil foto",
+    "error_detect": "Gagal mendeteksi objek",
+    "permission_msg": "Akses kamera diperlukan untuk mendeteksi objek.",
+    "permission_grant": "Izinkan Akses Kamera",
+    "tap_to_detect": "Ketuk untuk Deteksi",
+    "flip_camera": "Ganti Kamera",
+    "result_title": "Hasil Deteksi Objek",
+    "result_found": "{{count}} Objek Ditemukan",
+    "check_again": "Cek Lagi",
+    "check_again_hint": "Kembali ke kamera untuk mengambil foto baru"
+  },
+  "history": {
+    "title": "Riwayat",
+    "empty": "Belum ada riwayat aktivitas.",
+    "delete_confirm": "Hapus Riwayat",
+    "delete_message": "Apakah Anda yakin ingin menghapus item ini?",
+    "clear_all": "Hapus Semua",
+    "clear_confirm": "Yakin ingin menghapus semua riwayat?"
+  },
   "permissions": {
     "denied_title": "Izin Ditolak",
     "required_title": "Izin Diperlukan",
     "mic_required": "Mikrofon diperlukan untuk fitur ini.",
+    "camera_required": "Kamera diperlukan untuk fitur ini.",
     "gallery_required": "Mohon izinkan akses galeri untuk mengunggah dokumen."
   },
   "scan": {
@@ -58,5 +152,14 @@
     "error_gallery": "Gagal mengambil gambar dari galeri.",
     "error_process": "Terjadi kesalahan saat memproses gambar.",
     "failed": "Maaf, gagal memproses gambar."
+  },
+  "accessibility": {
+    "camera_capture": "Ambil foto untuk mendeteksi objek",
+    "camera_capture_hint": "Ketuk dua kali untuk mengambil foto",
+    "detection_result": "{{count}} objek terdeteksi",
+    "history_item": "Riwayat {{type}} pada {{date}}",
+    "delete_button": "Hapus item ini",
+    "menu_button": "Buka menu",
+    "back_button": "Kembali ke halaman sebelumnya"
   }
 }

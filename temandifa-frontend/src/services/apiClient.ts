@@ -1,95 +1,171 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  InternalAxiosRequestConfig,
+  isAxiosError,
+} from "axios";
 import * as SecureStore from "expo-secure-store";
 
-// Base API URL from environment or fallback for Android Emulator
+import { Logger } from "./logger";
+
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8080/api/v1";
 
-console.log("[ApiClient] Initialized with API_URL:", API_URL);
+Logger.info("ApiClient", "Initialized with API_URL:", { API_URL });
 
-// Create axios instance with default config
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: "access_token",
+  REFRESH_TOKEN: "refresh_token",
+};
+
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 30000, // 30 seconds default timeout
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor - add auth token
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+}
+
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await SecureStore.getItemAsync("token");
+      const token = await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
       if (token && token !== "GUEST_TOKEN") {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch {
-      console.log("[ApiClient] Failed to get token from storage");
+      Logger.warn("ApiClient", "Failed to get token from storage");
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle errors and retry
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const config = error.config as InternalAxiosRequestConfig & {
-      _retry?: number;
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+      _retryCount?: number;
     };
 
-    if (!config) {
+    if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    // Initialize retry counter
-    if (config._retry === undefined) {
-      config._retry = 0;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't retry for login/register/refresh endpoints
+      const noRefreshUrls = ["/login", "/register", "/refresh", "/logout"];
+      if (noRefreshUrls.some((url) => originalRequest.url?.includes(url))) {
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(apiClient(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const refreshToken = await SecureStore.getItemAsync(
+          STORAGE_KEYS.REFRESH_TOKEN
+        );
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
+        }
+
+        Logger.info("ApiClient", "Attempting token refresh...");
+
+        const response = await axios.post(`${API_URL}/refresh`, {
+          refresh_token: refreshToken,
+        });
+
+        const { access_token, refresh_token } = response.data.data;
+
+        await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access_token);
+        await SecureStore.setItemAsync(
+          STORAGE_KEYS.REFRESH_TOKEN,
+          refresh_token
+        );
+
+        Logger.info("ApiClient", "Token refreshed successfully");
+
+        apiClient.defaults.headers.common["Authorization"] =
+          `Bearer ${access_token}`;
+
+        onTokenRefreshed(access_token);
+
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        Logger.error("ApiClient", "Token refresh failed:", refreshError);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    // Conditions for retry
+    if (originalRequest._retryCount === undefined) {
+      originalRequest._retryCount = 0;
+    }
+
     const shouldRetry =
-      config._retry < 3 &&
-      (error.code === "ECONNABORTED" || // Timeout
-        error.code === "ERR_NETWORK" || // Network error
-        error.response?.status === 502 || // Bad Gateway
-        error.response?.status === 503 || // Service Unavailable
-        error.response?.status === 504); // Gateway Timeout
+      originalRequest._retryCount < 3 &&
+      (error.code === "ECONNABORTED" ||
+        error.code === "ERR_NETWORK" ||
+        error.response?.status === 502 ||
+        error.response?.status === 503 ||
+        error.response?.status === 504);
 
     if (shouldRetry) {
-      config._retry++;
-      console.log(
-        `[ApiClient] Retrying request (${config._retry}/3):`,
-        config.url
+      originalRequest._retryCount++;
+      Logger.warn(
+        "ApiClient",
+        `Retrying request (${originalRequest._retryCount}/3):`,
+        { url: originalRequest.url }
       );
 
-      // Exponential backoff: 1s, 2s, 4s
-      const delay = Math.pow(2, config._retry - 1) * 1000;
+      const delay = Math.pow(2, originalRequest._retryCount - 1) * 1000;
       await new Promise((resolve) => setTimeout(resolve, delay));
 
-      return apiClient(config);
-    }
-
-    // Handle 401 Unauthorized - token expired
-    if (error.response?.status === 401) {
-      console.log("[ApiClient] Unauthorized - token may be expired");
-      // Could trigger logout or token refresh here
+      return apiClient(originalRequest);
     }
 
     return Promise.reject(error);
   }
 );
 
-// Helper function to get error message
 export function getErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    // Server responded with error
-    if (error.response?.data?.error) {
-      return error.response.data.error;
+  if (isAxiosError(error)) {
+    if (error.response?.data?.error?.message) {
+      return error.response.data.error.message;
     }
-    // Network or timeout error
+    if (error.response?.data?.error) {
+      return typeof error.response.data.error === "string"
+        ? error.response.data.error
+        : "Terjadi kesalahan";
+    }
     if (error.code === "ECONNABORTED") {
       return "Koneksi timeout. Silakan coba lagi.";
     }

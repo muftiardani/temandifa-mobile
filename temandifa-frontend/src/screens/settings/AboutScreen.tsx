@@ -1,52 +1,54 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { useTheme } from "../../context/ThemeContext";
+import { View, StyleSheet } from "react-native";
+import { useThemeStore } from "../../stores/themeStore";
+import { ThemedText } from "../../components/atoms/ThemedText";
+import { ThemedView } from "../../components/atoms/ThemedView";
 
 export default function AboutScreen() {
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <View style={styles.logoContainer}>
-        {/* Placeholder Logo */}
         <View
           style={[
             styles.logoPlaceholder,
             { backgroundColor: theme.colors.primary },
           ]}
         >
-          <Text style={styles.logoText}>TD</Text>
+          <ThemedText style={styles.logoText} color="white">
+            TD
+          </ThemedText>
         </View>
-        <Text style={[styles.appName, { color: theme.colors.text }]}>
+        <ThemedText variant="title" style={styles.appName}>
           TemanDifa
-        </Text>
-        <Text style={[styles.version, { color: theme.colors.textSecondary }]}>
+        </ThemedText>
+        <ThemedText style={styles.version} color={theme.colors.textSecondary}>
           Versi 1.0.0 (MVP)
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.description, { color: theme.colors.text }]}>
+        <ThemedText style={styles.description}>
           TemanDifa adalah asisten digital cerdas yang dirancang untuk membantu
           teman-teman difabel netra dalam mengenali objek, membaca teks, dan
           beraktivitas sehari-hari.
-        </Text>
+        </ThemedText>
 
-        <Text
-          style={[styles.creditTitle, { color: theme.colors.textSecondary }]}
+        <ThemedText
+          style={styles.creditTitle}
+          color={theme.colors.textSecondary}
         >
           Dikembangkan oleh:
-        </Text>
-        <Text style={[styles.creditName, { color: theme.colors.text }]}>
+        </ThemedText>
+        <ThemedText variant="subtitle" style={styles.creditName}>
           Tim Developer TemanDifa
-        </Text>
-        <Text style={[styles.copyright, { color: theme.colors.textSecondary }]}>
+        </ThemedText>
+        <ThemedText style={styles.copyright} color={theme.colors.textSecondary}>
           © 2026 TemanDifa Project
-        </Text>
+        </ThemedText>
       </View>
-    </View>
+    </ThemedView>
   );
 }
 

@@ -1,27 +1,19 @@
 import apiClient, { getErrorMessage } from "./apiClient";
+import {
+  TranscriptionResult,
+  TranscriptionResponseSchema,
+} from "../schemas/transcription";
 
-console.log("[TranscriptionService] Initialized");
+import { Logger } from "./logger";
 
-export interface TranscriptionResult {
-  status: string;
-  text?: string;
-  language?: string;
-  error?: string;
-}
+Logger.info("TranscriptionService", "Initialized");
 
-interface TranscriptionApiResponse {
-  status: string;
-  filename: string;
-  data: {
-    text: string;
-    language: string;
-  };
-}
+export { TranscriptionResult };
 
 export const transcribeAudio = async (
   uri: string
 ): Promise<TranscriptionResult> => {
-  console.log("[TranscriptionService] Sending audio for transcription...");
+  Logger.info("TranscriptionService", "Sending audio for transcription...");
   const formData = new FormData();
   // @ts-ignore
   formData.append("file", {
@@ -31,25 +23,24 @@ export const transcribeAudio = async (
   });
 
   try {
-    const response = await apiClient.post<TranscriptionApiResponse>(
-      "/transcribe",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 60000, // 60 seconds for audio transcription
-      }
-    );
+    const response = await apiClient.post("/transcribe", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000,
+    });
 
-    // Map API response to TranscriptionResult
+    // Validate with Zod
+    const parsed = TranscriptionResponseSchema.parse(response.data);
+
     return {
-      status: response.data.status,
-      text: response.data.data?.text,
-      language: response.data.data?.language,
+      status: parsed.status,
+      text: parsed.data?.text,
+      language: parsed.data?.language,
+      error: parsed.error,
     };
   } catch (error) {
-    console.error("[TranscriptionService] Error:", getErrorMessage(error));
+    Logger.error("TranscriptionService", "Error:", getErrorMessage(error));
     throw error;
   }
 };

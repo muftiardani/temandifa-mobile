@@ -1,8 +1,45 @@
+# Core Framework
 fastapi==0.109.0
 uvicorn==0.27.0
 python-multipart==0.0.6
 requests==2.31.0
-ultralytics==8.1.0  # YOLOv8
-paddlepaddle==2.6.0 # OCR Engine
-paddleocr==2.7.0.3  # OCR Tool
-openai-whisper==20231117
+
+# AI/ML Models
+# ultralytics removed (using onnxruntime)
+paddlepaddle>=2.6.0     # OCR Engine (Required for PaddleOCR)
+paddleocr==2.7.0.3      # OCR Tool
+faster-whisper>=1.0.0
+onnxruntime==1.17.0
+
+# Configuration & Validation
+pydantic-settings==2.1.0
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Metrics & Monitoring
+prometheus-client>=0.19.0
+psutil>=5.9.0
+
+# Utilities
+python-magic>=0.4.27   # Security: Magic bytes validation
+pillow>=10.0.0
+numpy>=1.24.0,<2.0.0
+tenacity>=8.2.0
+
+# Redis Caching
+redis>=5.0.1
+google-generativeai>=0.3.20
+
+# Performance
+opencv-python-headless>=4.8.0  # Faster image preprocessing
+
+# Development Tools
+ruff>=0.1.0
+black>=24.0.0
+
+# gRPC & ONNX Support
+grpcio>=1.60.0
+grpcio-tools>=1.60.0
+protobuf>=5.29.0
+onnx>=1.15.0

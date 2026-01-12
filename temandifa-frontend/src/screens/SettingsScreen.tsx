@@ -1,21 +1,27 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Switch,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Switch } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../context/ThemeContext";
+import { useThemeStore } from "../stores/themeStore";
+import { ThemedText } from "../components/atoms/ThemedText";
+import { ThemedView } from "../components/atoms/ThemedView";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, toggleTheme } = useThemeStore();
+
+  interface MenuItemProps {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    onPress?: () => void;
+    hasSwitch?: boolean;
+    value?: boolean;
+    onValueChange?: (value: boolean) => void;
+    color?: string;
+  }
 
   const MenuItem = ({
     icon,
@@ -25,11 +31,14 @@ export default function SettingsScreen() {
     value = false,
     onValueChange,
     color,
-  }: any) => (
-    <TouchableOpacity
+  }: MenuItemProps) => (
+    <AccessibleTouchableOpacity
       style={[styles.menuItem, { backgroundColor: theme.colors.surface }]}
       onPress={onPress}
       disabled={hasSwitch}
+      accessibilityLabel={title}
+      accessibilityRole={hasSwitch ? "switch" : "button"}
+      accessibilityState={hasSwitch ? { checked: value } : undefined}
     >
       <View style={styles.menuLeft}>
         <View
@@ -37,12 +46,8 @@ export default function SettingsScreen() {
             styles.iconContainer,
             {
               backgroundColor: hasSwitch
-                ? isDark
-                  ? "#1a3b5c"
-                  : "#E3F2FD"
-                : isDark
-                ? "#2C2C2E"
-                : "#F5F5F5",
+                ? theme.colors.primary + (isDark ? "30" : "20") // 20% opacity for light, 30% for dark
+                : theme.colors.iconBackground,
             },
           ]}
         >
@@ -54,16 +59,17 @@ export default function SettingsScreen() {
             }
           />
         </View>
-        <Text style={[styles.menuText, { color: theme.colors.text }]}>
-          {title}
-        </Text>
+        <ThemedText style={styles.menuText}>{title}</ThemedText>
       </View>
 
       {hasSwitch ? (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: "#767577", true: "#81b0ff" }}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary + "80",
+          }}
           thumbColor={value ? theme.colors.primary : "#f4f3f4"}
         />
       ) : (
@@ -73,21 +79,18 @@ export default function SettingsScreen() {
           color={theme.colors.textSecondary}
         />
       )}
-    </TouchableOpacity>
+    </AccessibleTouchableOpacity>
   );
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Section: Tampilan & Preferensi */}
-        <Text
-          style={[styles.sectionHeader, { color: theme.colors.textSecondary }]}
-        >
+        <ThemedText variant="caption" style={styles.sectionHeader}>
           {t("settings.appearance")}
-        </Text>
-        <View
+        </ThemedText>
+        <ThemedView
+          variant="surface"
           style={[
             styles.section,
             {
@@ -111,22 +114,15 @@ export default function SettingsScreen() {
             title={t("settings.language")}
             onPress={() => navigation.navigate("Language" as never)}
           />
-        </View>
+        </ThemedView>
 
         {/* Section: Informasi & Bantuan */}
-        <Text
-          style={[styles.sectionHeader, { color: theme.colors.textSecondary }]}
-        >
+        <ThemedText variant="caption" style={styles.sectionHeader}>
           {t("settings.info")}
-        </Text>
-        <View
-          style={[
-            styles.section,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
+        </ThemedText>
+        <ThemedView
+          variant="surface"
+          style={[styles.section, { borderColor: theme.colors.border }]}
         >
           <MenuItem
             icon="help-circle"
@@ -149,23 +145,17 @@ export default function SettingsScreen() {
             title={t("settings.about")}
             onPress={() => navigation.navigate("About" as never)}
           />
-        </View>
+        </ThemedView>
       </ScrollView>
 
       {/* Footer Version */}
       <View style={styles.footer}>
-        <Text
-          style={[styles.versionText, { color: theme.colors.textSecondary }]}
-        >
+        <ThemedText variant="caption" style={styles.versionText}>
           TemanDifa v1.0.0
-        </Text>
-        <Text
-          style={[styles.copyrightText, { color: theme.colors.textSecondary }]}
-        >
-          © 2024 TemanDifa Team
-        </Text>
+        </ThemedText>
+        <ThemedText variant="caption">© 2024 TemanDifa Team</ThemedText>
       </View>
-    </View>
+    </ThemedView>
   );
 }
 

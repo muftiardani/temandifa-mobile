@@ -26,5 +26,5 @@ type CallLog struct {
 	Status     CallStatus `json:"status" gorm:"type:varchar(20);default:'INITIATED'"`
 	StartTime  time.Time  `json:"start_time"`
 	EndTime    *time.Time `json:"end_time"`
-	Duration   int        `json:"duration_seconds"` // Check helper logic to calc this
+	Duration   int        `json:"duration_seconds"`
 }

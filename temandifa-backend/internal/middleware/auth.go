@@ -3,71 +3,122 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	"temandifa-backend/internal/database"
 	"temandifa-backend/internal/logger"
 	"temandifa-backend/internal/models"
+	"temandifa-backend/internal/repositories"
+	"temandifa-backend/internal/services"
 )
 
-// getJwtSecret retrieves JWT secret from environment
-func getJwtSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		if os.Getenv("GIN_MODE") == "release" {
-			logger.Fatal("JWT_SECRET environment variable is required in production")
-		}
-		logger.Warn("Using default JWT secret. Set JWT_SECRET in production!")
-		return []byte("dev-secret-change-in-production")
-	}
-	if len(secret) < 32 {
-		logger.Fatal("JWT_SECRET must be at least 32 characters for security")
-	}
-	return []byte(secret)
-}
-
-// Auth validates JWT token and attaches user to context
-func Auth() gin.HandlerFunc {
+// Auth validates JWT token and attaches user to context.
+// Uses dependency injection for userRepo and userCache.
+func Auth(jwtSecret string, userRepo repositories.UserRepository, userCache services.UserCacheService) gin.HandlerFunc {
+	secret := []byte(jwtSecret)
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			logger.Debug("Missing authorization header", zap.String("path", c.Request.URL.Path))
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "UNAUTHORIZED",
+					"message": "Authorization header required",
+				},
+			})
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
+		if services.IsTokenBlacklisted(c, tokenString) {
+			logger.Debug("Token is blacklisted", zap.String("path", c.Request.URL.Path))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "TOKEN_REVOKED",
+					"message": "Token has been revoked",
+				},
+			})
+			return
+		}
+
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return getJwtSecret(), nil
+			return secret, nil
 		})
 
 		if err != nil || !token.Valid {
 			logger.Debug("Invalid token", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "TOKEN_INVALID",
+					"message": "Invalid token",
+				},
+			})
 			return
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			// Check if user exists
 			userId := uint(claims["sub"].(float64))
-			var user models.User
-			if result := database.DB.First(&user, userId); result.Error != nil {
+
+			// Try to get user from cache first (using injected UserCacheService)
+			if userCache != nil {
+				cachedUser, err := userCache.GetCachedUser(c.Request.Context(), userId)
+				if err == nil && cachedUser != nil {
+					// Cache hit - create minimal user object
+					user := models.User{
+						Email:    cachedUser.Email,
+						FullName: cachedUser.FullName,
+						Role:     cachedUser.Role,
+					}
+					user.ID = cachedUser.ID
+					c.Set("user", user)
+					logger.Debug("User authenticated (cached)",
+						zap.Uint("user_id", user.ID),
+						zap.String("email", user.Email),
+					)
+					c.Next()
+					return
+				}
+
+				// Log cache errors (except not found)
+				if err != nil && err != redis.Nil {
+					logger.Debug("User cache error", zap.Error(err))
+				}
+			}
+
+			// Cache miss or no cache - fetch from database using repository
+			user, err := userRepo.FindByID(userId)
+			if err != nil || user == nil {
 				logger.Debug("User not found from token", zap.Uint("user_id", userId))
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"success": false,
+					"error": gin.H{
+						"code":    "NOT_FOUND",
+						"message": "User not found",
+					},
+				})
 				return
 			}
 
+			// Cache the user for future requests (if cache available)
+			if userCache != nil {
+				if cacheErr := userCache.SetCachedUser(c.Request.Context(), user); cacheErr != nil {
+					logger.Debug("Failed to cache user", zap.Error(cacheErr))
+				}
+			}
+
 			// Attach user to context
-			c.Set("user", user)
+			c.Set("user", *user)
 			logger.Debug("User authenticated",
 				zap.Uint("user_id", user.ID),
 				zap.String("email", user.Email),
@@ -75,7 +126,14 @@ func Auth() gin.HandlerFunc {
 			c.Next()
 		} else {
 			logger.Debug("Invalid token claims")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "TOKEN_INVALID",
+					"message": "Invalid token claims",
+				},
+			})
 		}
 	}
 }
+

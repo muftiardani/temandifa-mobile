@@ -10,8 +10,14 @@ export const lightTheme = {
     card: "#FFFFFF",
     iconDefault: "#333333",
     iconBackground: "#F5F5F5",
-    error: "#FF3B30", // iOS Red
-    success: "#34C759", // iOS Green
+    error: "#FF3B30",
+    success: "#34C759",
+    warning: "#FF9800",
+    // Feature Colors
+    featureCamera: "#EA4335",
+    featureScan: "#00BFA5",
+    featureVoice: "#4285F4", // Slightly different blue for light mode? Or keep consistent? Let's keep consistent branding.
+    emergency: "#D93025",
   },
 };
 
@@ -27,8 +33,14 @@ export const darkTheme = {
     card: "#1C1C1E",
     iconDefault: "#FFFFFF",
     iconBackground: "#2C2C2E",
-    error: "#FF453A", // iOS Dark Mode Red
-    success: "#30D158", // iOS Dark Mode Green (fixed typo in value)
+    error: "#FF453A",
+    success: "#30D158",
+    warning: "#FF9F0A",
+    // Feature Colors
+    featureCamera: "#EA4335", // Red/Orange
+    featureScan: "#00BFA5", // Teal
+    featureVoice: "#2196F3", // Blue (Primary)
+    emergency: "#D93025", // Deep Red
   },
 };
 

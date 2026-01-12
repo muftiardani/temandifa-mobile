@@ -16,6 +16,16 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-temandifa}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # ---------------------------------------------------------------------------
   # Cache Service (Redis)
@@ -28,6 +38,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ---------------------------------------------------------------------------
   # Core Backend Service (Go)
@@ -39,18 +54,22 @@ services:
     container_name: temandifa_backend
     restart: always
     depends_on:
-      - postgres
-      - redis
-      - ai-service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       - PORT=8080
-      - GIN_MODE=debug
+      - GIN_MODE=release
       - DB_DSN=host=postgres user=${DB_USER:-postgres} password=${DB_PASSWORD:-postgres} dbname=${DB_NAME:-temandifa} port=5432 sslmode=disable TimeZone=Asia/Jakarta
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=
       - AI_SERVICE_URL=http://ai-service:8000
+      - AI_SERVICE_GRPC_ADDR=ai-service:50051
       - JWT_SECRET=${JWT_SECRET:-secret}
       - JWT_EXPIRATION_DAYS=7
 
@@ -65,11 +84,38 @@ services:
     restart: always
     ports:
       - "8000:8000"
+      - "50051:50051" # gRPC port (optional, for external access)
     environment:
       - PORT=8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+      - ENABLE_VQA=true
     # Optional: Mount models directory to persist downloaded models
     volumes:
       - ai_models:/app/models
+    # Limit resources to prevent OOM
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    # Graceful shutdown timeout
+    stop_grace_period: 10s
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # ---------------------------------------------------------------------------
   # Monitoring: Prometheus

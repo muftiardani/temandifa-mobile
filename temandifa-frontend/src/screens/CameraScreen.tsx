@@ -3,30 +3,43 @@ import { useState, useRef } from "react";
 import {
   Button,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
   Image,
-  Alert,
   ActivityIndicator,
   ScrollView,
+  Switch,
+  Text,
 } from "react-native";
 import * as Speech from "expo-speech";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
+
+import { useThemeStore } from "../stores/themeStore";
+import { Logger } from "../services/logger";
 
 import { detectObject } from "../services/detectionService";
+import { askAboutImage } from "../services/vqaService";
 import { saveHistory } from "../services/historyService";
-import { LoadingOverlay } from "../components/LoadingOverlay";
-import { DetectionResult } from "../types/detection";
+import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
+import { DetectionItem } from "../schemas/detection";
 import { haptics } from "../utils/haptics";
-import { optimizeImageForDetection } from "../utils/imageUtils";
+import { optimizeImageForDetection, optimizeImage } from "../utils/imageUtils";
+import { ThemedText } from "../components/atoms/ThemedText";
+import { ThemedView } from "../components/atoms/ThemedView";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [detections, setDetections] = useState<DetectionResult[]>([]);
+  const [detections, setDetections] = useState<DetectionItem[]>([]);
+  const [smartMode, setSmartMode] = useState(false);
+  const [smartDescription, setSmartDescription] = useState<string | null>(null);
+
+  const { t } = useTranslation();
+  const { theme } = useThemeStore();
 
   const cameraRef = useRef<CameraView>(null);
 
@@ -40,11 +53,16 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.message}>
-          Akses kamera diperlukan untuk mendeteksi objek.
-        </Text>
-        <Button onPress={requestPermission} title="Izinkan Akses Kamera" />
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
+        <ThemedText style={styles.message} color="white">
+          {t("camera.permission_msg")}
+        </ThemedText>
+        <Button
+          onPress={requestPermission}
+          title={t("camera.permission_grant")}
+        />
       </View>
     );
   }
@@ -52,11 +70,10 @@ export default function CameraScreen() {
   async function takePicture() {
     if (cameraRef.current) {
       try {
-        // Haptic feedback on capture
         await haptics.medium();
 
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8, // Higher quality, will optimize after
+          quality: 0.8,
           base64: false,
         });
         if (photo) {
@@ -64,9 +81,14 @@ export default function CameraScreen() {
           processImage(photo.uri);
         }
       } catch (e) {
-        console.error(e);
+        Logger.error("CameraScreen", "Failed to take picture", e);
         haptics.error();
-        Alert.alert("Error", "Gagal mengambil foto.");
+        Toast.show({
+          type: "error",
+          text1: t("camera.error_capture"),
+          text2: t("common.retry"),
+          visibilityTime: 3000,
+        });
       }
     }
   }
@@ -74,35 +96,64 @@ export default function CameraScreen() {
   async function processImage(uri: string) {
     setLoading(true);
     setDetections([]);
+    setSmartDescription(null);
     try {
-      // Optimize image for detection (smaller size)
-      const optimizedUri = await optimizeImageForDetection(uri);
+      if (smartMode) {
+        // Smart VQA Mode
+        // Using slighty better quality for VQA
+        const optimizedUri = await optimizeImage(uri, {
+          maxWidth: 1024,
+          quality: 0.7,
+        });
 
-      const response = await detectObject(optimizedUri);
-      if (response.data) {
-        setDetections(response.data);
+        // Default "Describe" prompt
+        const prompt =
+          "Deskripsikan apa yang ada di gambar ini secara detail untuk membantu tunanetra.";
+        const response = await askAboutImage(optimizedUri, prompt);
 
-        // Speak summary
-        const labels = response.data.map((d) => d.label).join(", ");
-        if (labels) {
+        if (response.data && response.data.success) {
+          const answer = response.data.answer;
+          setSmartDescription(answer);
           haptics.success();
-          Speech.speak("Terdeteksi: " + labels);
+          Speech.speak(answer);
 
-          // Save to history
           try {
-            await saveHistory("OBJECT", uri, labels);
-          } catch {
-            console.log("Failed to save history");
-          }
+            await saveHistory("VQA", uri, answer);
+          } catch (err) {}
         } else {
-          Speech.speak("Tidak ada objek terdeteksi");
+          throw new Error(response.error || "VQA Failed");
+        }
+      } else {
+        // Standard Detection Mode
+        const optimizedUri = await optimizeImageForDetection(uri);
+        const response = await detectObject(optimizedUri);
+
+        if (response.data) {
+          setDetections(response.data);
+
+          const labels = response.data.map((d) => d.label).join(", ");
+          if (labels) {
+            haptics.success();
+            Speech.speak(t("voice.result_label") + " " + labels);
+
+            try {
+              await saveHistory("OBJECT", uri, labels);
+            } catch (err) {}
+          } else {
+            Speech.speak(t("camera.no_object"));
+          }
         }
       }
     } catch (error) {
-      console.error(error);
+      Logger.error("CameraScreen", "Processing error", error);
       haptics.error();
-      Speech.speak("Gagal mendeteksi objek");
-      Alert.alert("Error", "Gagal mendeteksi objek.");
+      Speech.speak(t("camera.error_detect"));
+      Toast.show({
+        type: "error",
+        text1: t("camera.error_detect"),
+        text2: t("errors.network"),
+        visibilityTime: 4000,
+      });
     } finally {
       setLoading(false);
     }
@@ -111,6 +162,7 @@ export default function CameraScreen() {
   function reset() {
     setImage(null);
     setDetections([]);
+    setSmartDescription(null);
     Speech.stop();
   }
 
@@ -125,44 +177,75 @@ export default function CameraScreen() {
         {loading && <LoadingOverlay />}
 
         {!loading && (
-          <View style={styles.resultPanel}>
+          <ThemedView style={styles.resultPanel} variant="surface">
             <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>Hasil Deteksi Objek</Text>
-              <Text style={styles.resultCount}>
-                {detections.length} Objek Ditemukan
-              </Text>
+              <ThemedText variant="title" style={styles.resultTitle}>
+                {smartMode ? "Deskripsi AI" : t("camera.result_title")}
+              </ThemedText>
+              {!smartMode && (
+                <ThemedText
+                  style={styles.resultCount}
+                  color={theme.colors.textSecondary}
+                >
+                  {t("camera.result_found", { count: detections.length })}
+                </ThemedText>
+              )}
             </View>
 
             <ScrollView style={styles.resultList}>
-              {detections.length === 0 ? (
-                <Text style={styles.noResultText}>
-                  Tidak ada objek yang dikenali.
-                </Text>
+              {smartMode ? (
+                <ThemedText style={styles.descriptionText}>
+                  {smartDescription}
+                </ThemedText>
+              ) : detections.length === 0 ? (
+                <ThemedText
+                  style={styles.noResultText}
+                  color={theme.colors.textSecondary}
+                >
+                  {t("camera.no_object")}
+                </ThemedText>
               ) : (
                 detections.map((det, index) => (
                   <View key={index} style={styles.resultItem}>
                     <View style={styles.resultItemLeft}>
-                      <Ionicons name="pricetag" size={20} color="#2196F3" />
-                      <Text style={styles.labelName}>{det.label}</Text>
+                      <Ionicons
+                        name="pricetag"
+                        size={20}
+                        color={theme.colors.primary}
+                      />
+                      <ThemedText style={styles.labelName}>
+                        {det.label}
+                      </ThemedText>
                     </View>
-                    <Text style={styles.confidenceText}>
+                    <ThemedText
+                      style={styles.confidenceText}
+                      color={theme.colors.primary}
+                    >
                       {Math.round(det.confidence * 100)}%
-                    </Text>
+                    </ThemedText>
                   </View>
                 ))
               )}
             </ScrollView>
 
             <View style={styles.resultActions}>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.secondaryBtn]}
+              <AccessibleTouchableOpacity
+                style={[
+                  styles.actionBtn,
+                  { backgroundColor: theme.colors.primary },
+                ]}
                 onPress={reset}
+                accessibilityLabel={t("camera.check_again")}
+                accessibilityHint={t("camera.check_again_hint")}
+                accessibilityRole="button"
               >
                 <Ionicons name="camera" size={24} color="white" />
-                <Text style={styles.actionBtnText}>Cek Lagi</Text>
-              </TouchableOpacity>
+                <ThemedText style={styles.actionBtnText} color="white">
+                  {t("camera.check_again")}
+                </ThemedText>
+              </AccessibleTouchableOpacity>
             </View>
-          </View>
+          </ThemedView>
         )}
       </View>
     );
@@ -171,16 +254,58 @@ export default function CameraScreen() {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-        {/* Flip Camera Button */}
-        <TouchableOpacity style={styles.flipBtn} onPress={toggleCameraFacing}>
-          <Ionicons name="camera-reverse" size={28} color="white" />
-        </TouchableOpacity>
+        {/* Top Controls */}
+        <View style={styles.topControls}>
+          <View style={styles.smartToggleContainer}>
+            <ThemedText style={{ color: "white", fontWeight: "bold" }}>
+              Model Pintar
+            </ThemedText>
+            <Switch
+              value={smartMode}
+              onValueChange={(val) => {
+                haptics.selection();
+                setSmartMode(val);
+                Speech.stop();
+                Speech.speak(val ? "Mode Pintar Aktif" : "Mode Standar Aktif");
+              }}
+              thumbColor={smartMode ? theme.colors.primary : "#f4f3f4"}
+              trackColor={{ false: "#767577", true: "rgba(33, 150, 243, 0.5)" }}
+            />
+          </View>
+
+          <AccessibleTouchableOpacity
+            style={styles.flipBtn}
+            onPress={toggleCameraFacing}
+            accessibilityLabel={t("camera.flip_camera")}
+            accessibilityHint={t("camera.flip_camera")}
+            accessibilityRole="button"
+          >
+            <Ionicons name="camera-reverse" size={28} color="white" />
+          </AccessibleTouchableOpacity>
+        </View>
 
         <View style={styles.bottomControls}>
-          <TouchableOpacity style={styles.captureBtn} onPress={takePicture}>
-            <View style={styles.captureInner} />
-          </TouchableOpacity>
-          <Text style={styles.captureHint}>Ketuk untuk Deteksi</Text>
+          <AccessibleTouchableOpacity
+            style={[styles.captureBtn, smartMode && { borderColor: "#FBC02D" }]}
+            onPress={takePicture}
+            accessibilityLabel={
+              smartMode ? "Ambil foto dan deskripsikan" : t("camera.capture")
+            }
+            accessibilityHint={t("accessibility.camera_capture")}
+            accessibilityRole="button"
+          >
+            <View
+              style={[
+                styles.captureInner,
+                smartMode && { backgroundColor: "#FBC02D" },
+              ]}
+            />
+          </AccessibleTouchableOpacity>
+          <ThemedText style={styles.captureHint} color="white">
+            {smartMode
+              ? "Ketuk untuk Bertanya pada AI"
+              : t("camera.tap_to_detect")}
+          </ThemedText>
         </View>
       </CameraView>
     </View>
@@ -206,14 +331,29 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  flipBtn: {
+  topControls: {
     position: "absolute",
     top: 50,
+    left: 20,
     right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  smartToggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 8,
+  },
+  flipBtn: {
     backgroundColor: "rgba(0,0,0,0.4)",
     padding: 12,
     borderRadius: 30,
-    zIndex: 10,
   },
   bottomControls: {
     position: "absolute",
@@ -247,7 +387,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  // Result Panel
+
   resultPanel: {
     position: "absolute",
     bottom: 0,
@@ -257,7 +397,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    maxHeight: "60%",
+    maxHeight: "70%",
     elevation: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
@@ -284,7 +424,12 @@ const styles = StyleSheet.create({
   },
   resultList: {
     marginBottom: 20,
-    maxHeight: 200,
+    maxHeight: 400,
+  },
+  descriptionText: {
+    fontSize: 18,
+    lineHeight: 28,
+    color: "#333",
   },
   noResultText: {
     fontSize: 16,
@@ -329,9 +474,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  secondaryBtn: {
-    backgroundColor: "#2196F3", // Keep it main action color for re-taking
-  },
+
   actionBtnText: {
     color: "white",
     fontWeight: "bold",

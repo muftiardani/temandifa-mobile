@@ -9,7 +9,11 @@
     "voice": "Voice",
     "camera_obj": "Camera (Object)",
     "profile": "My Profile",
-    "settings": "Settings"
+    "settings": "Settings",
+    "gallery": "Gallery",
+    "offline_syncing": "Syncing...",
+    "offline_waiting": "{{count}} pending sync",
+    "offline_mode": "Offline Mode - Data will be saved locally"
   },
   "settings": {
     "title": "Settings",
@@ -25,8 +29,72 @@
   "common": {
     "back": "Back",
     "loading": "Loading...",
+    "processing": "Processing...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "save": "Save",
+    "retry": "Retry",
+    "close": "Close"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "full_name": "Full Name",
+    "forgot_password": "Forgot Password?",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?",
+    "login_guest": "Login as Guest",
+    "login_biometric": "Login with Biometrics",
+    "register_success": "Registration successful!",
+    "login_success": "Login successful!",
+    "logout_confirm": "Are you sure you want to logout?",
+    "logout_title": "Confirm Logout",
+    "cancel_btn": "Cancel",
+    "logout_btn": "Logout",
+    "biometric_success": "Biometric login disabled.",
+    "biometric_enable_success": "Biometric login enabled successfully!",
+    "biometric_fail": "Failed to enable biometrics. Try again.",
+    "password_empty": "Password cannot be empty",
+    "confirm_password_title": "Confirm Password",
+    "confirm_password_desc": "Enter your password to enable biometrics.",
+    "activate": "Activate",
+    "join_date": "Joined since {{year}}",
+    "biometric_login_opt": "Biometric Login",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activity_history": "Activity History",
+    "sign_out": "Sign Out",
+    "history_delete_title": "Delete History",
+    "history_delete_confirm": "Are you sure you want to delete this item?",
+    "delete": "Delete"
+  },
+  "document_scanner": {
+    "permission_msg": "Camera access is required to scan documents.",
+    "permission_grant": "Grant Camera Access",
+    "result_title": "Text Detection Result",
+    "read": "Read",
+    "retake": "Retake",
+    "tap_hint": "Tap to Scan",
+    "no_text": "Text not clearly read.",
+    "error_capture": "Failed to capture image",
+    "error_process": "Failed to process document"
+  },
+  "errors": {
+    "network": "No internet connection",
+    "timeout": "Request timeout",
+    "server": "Server error occurred",
+    "unauthorized": "Your session has expired",
+    "validation": "Invalid data",
+    "unknown": "An unknown error occurred",
+    "crash_title": "Oops! Something went wrong",
+    "crash_message": "The application encountered a problem. Please try again."
   },
   "voice": {
     "status_idle": "Tap mic to record",
@@ -39,10 +107,36 @@
     "error_start": "Failed to start recording.",
     "error_process": "Unable to process audio."
   },
+  "camera": {
+    "title": "Object Detection",
+    "capture": "Take Photo",
+    "detecting": "Detecting objects...",
+    "result": "{{count}} objects detected",
+    "no_object": "No objects detected",
+    "error_capture": "Failed to take photo",
+    "error_detect": "Failed to detect objects",
+    "permission_msg": "Camera access is required to detect objects.",
+    "permission_grant": "Grant Camera Access",
+    "tap_to_detect": "Tap to Detect",
+    "flip_camera": "Flip Camera",
+    "result_title": "Object Detection Result",
+    "result_found": "{{count}} Objects Found",
+    "check_again": "Check Again",
+    "check_again_hint": "Return to camera to take a new photo"
+  },
+  "history": {
+    "title": "History",
+    "empty": "No activity history yet.",
+    "delete_confirm": "Delete History",
+    "delete_message": "Are you sure you want to delete this item?",
+    "clear_all": "Clear All",
+    "clear_confirm": "Are you sure you want to clear all history?"
+  },
   "permissions": {
     "denied_title": "Permission Denied",
     "required_title": "Permission Required",
     "mic_required": "Microphone is required for this feature.",
+    "camera_required": "Camera is required for this feature.",
     "gallery_required": "Please grant gallery access to upload documents."
   },
   "scan": {
@@ -58,5 +152,14 @@
     "error_gallery": "Failed to pick image from gallery.",
     "error_process": "An error occurred while processing the image.",
     "failed": "Sorry, failed to process image."
+  },
+  "accessibility": {
+    "camera_capture": "Take photo to detect objects",
+    "camera_capture_hint": "Double tap to take photo",
+    "detection_result": "{{count}} objects detected",
+    "history_item": "History {{type}} on {{date}}",
+    "delete_button": "Delete this item",
+    "menu_button": "Open menu",
+    "back_button": "Go back to previous page"
   }
 }

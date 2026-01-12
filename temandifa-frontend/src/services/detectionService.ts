@@ -1,12 +1,19 @@
 import apiClient, { getErrorMessage } from "./apiClient";
-import { ApiResponse } from "../types/detection";
+import {
+  DetectionResponse,
+  DetectionResponseSchema,
+} from "../schemas/detection";
 
-console.log("[DetectionService] Initialized");
+import { Logger } from "./logger";
 
-export const detectObject = async (imageUri: string): Promise<ApiResponse> => {
-  console.log("[DetectionService] Sending image to API...");
+Logger.info("DetectionService", "Initialized");
+
+export const detectObject = async (
+  imageUri: string
+): Promise<DetectionResponse> => {
+  Logger.info("DetectionService", "Sending image to API...");
   const formData = new FormData();
-  // @ts-ignore - React Native FormData expects an object with uri, name, type
+  // @ts-ignore
   formData.append("file", {
     uri: imageUri,
     name: "photo.jpg",
@@ -14,15 +21,18 @@ export const detectObject = async (imageUri: string): Promise<ApiResponse> => {
   });
 
   try {
-    const response = await apiClient.post<ApiResponse>("/detect", formData, {
+    const response = await apiClient.post("/detect", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      timeout: 15000, // 15 seconds for detection
+      timeout: 15000,
     });
-    return response.data;
+
+    // Validate with Zod
+    const parsed = DetectionResponseSchema.parse(response.data);
+    return parsed;
   } catch (error) {
-    console.error("[DetectionService] Error:", getErrorMessage(error));
+    Logger.error("DetectionService", "Error:", getErrorMessage(error));
     throw error;
   }
 };

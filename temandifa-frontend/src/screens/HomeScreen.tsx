@@ -1,18 +1,15 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "../context/ThemeContext";
+import { useThemeStore } from "../stores/themeStore";
 import { RootStackParamList } from "../types/navigation";
+import { ThemedText } from "../components/atoms/ThemedText";
+
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
+import { FeatureCard } from "../components/molecules/FeatureCard";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -22,7 +19,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
   const handleEmergency = () => {
     Alert.alert(
@@ -36,76 +33,74 @@ export default function HomeScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.greeting, { color: theme.colors.text }]}>
-            {t("greeting.welcome")}
-          </Text>
-          <Text
-            style={[styles.subGreeting, { color: theme.colors.textSecondary }]}
-          >
+          <ThemedText variant="title">{t("greeting.welcome")}</ThemedText>
+          <ThemedText variant="subtitle" style={{ marginTop: 8 }}>
             {t("greeting.ask_help")}
-          </Text>
+          </ThemedText>
         </View>
 
-        {/* Main Feature Cards */}
         <View style={styles.grid}>
-          {/* Kamera Card (Full Width) - Deteksi Objek */}
-          <TouchableOpacity
-            style={[styles.card, styles.cardBlue, styles.cardFull]}
+          <FeatureCard
+            title={t("menu.camera_obj")}
+            icon="camera"
+            color={theme.colors.featureCamera}
             onPress={() => navigation.navigate("Camera")}
-          >
-            <Ionicons name="camera" size={32} color="white" />
-            <Text style={styles.cardText}>{t("menu.camera_obj")}</Text>
-          </TouchableOpacity>
+            fullWidth
+            accessibilityHint="Membuka kamera untuk mendeteksi objek di sekitar"
+          />
 
           <View style={styles.row}>
-            {/* Scan Card - Menu Scan/Upload */}
-            <TouchableOpacity
-              style={[styles.card, styles.cardOrange]}
+            <FeatureCard
+              title={t("menu.scan")}
+              icon="scan"
+              color={theme.colors.featureScan}
               onPress={() => navigation.navigate("Scan")}
-            >
-              <Ionicons name="scan" size={32} color="white" />
-              <Text style={styles.cardText}>{t("menu.scan")}</Text>
-            </TouchableOpacity>
+              accessibilityHint="Membuka menu pemindaian dokumen"
+            />
 
-            {/* Voice Card */}
-            <TouchableOpacity
-              style={[styles.card, styles.cardTeal]}
+            <FeatureCard
+              title={t("menu.voice")}
+              icon="mic"
+              color={theme.colors.featureVoice}
               onPress={() => navigation.navigate("Voice")}
-            >
-              <Ionicons name="mic" size={32} color="white" />
-              <Text style={styles.cardText}>{t("menu.voice")}</Text>
-            </TouchableOpacity>
+              accessibilityHint="Membuka fitur perintah suara dan transkripsi"
+            />
           </View>
         </View>
       </ScrollView>
 
-      {/* Floating Footer */}
       <View style={styles.footer}>
-        {/* Dock: Settings & Profile (Pill Shape) */}
         <View style={styles.pillDock}>
-          <TouchableOpacity
+          <AccessibleTouchableOpacity
             style={styles.dockBtn}
             onPress={() => navigation.navigate("Profile")}
+            accessibilityLabel="Profil Saya"
+            accessibilityHint="Membuka halaman profil pengguna"
           >
             <Ionicons name="person" size={24} color="white" />
-          </TouchableOpacity>
+          </AccessibleTouchableOpacity>
 
           <View style={styles.dockDivider} />
 
-          <TouchableOpacity
+          <AccessibleTouchableOpacity
             style={styles.dockBtn}
             onPress={() => navigation.navigate("Settings")}
+            accessibilityLabel="Pengaturan"
+            accessibilityHint="Membuka halaman pengaturan aplikasi"
           >
             <Ionicons name="settings-sharp" size={24} color="white" />
-          </TouchableOpacity>
+          </AccessibleTouchableOpacity>
         </View>
 
-        {/* Emergency Button */}
-        <TouchableOpacity style={styles.emergencyBtn} onPress={handleEmergency}>
+        <AccessibleTouchableOpacity
+          style={styles.emergencyBtn}
+          onPress={handleEmergency}
+          accessibilityLabel="Tombol Darurat"
+          accessibilityHint="Panggilan darurat"
+        >
           <Ionicons name="call" size={28} color="white" />
-        </TouchableOpacity>
+        </AccessibleTouchableOpacity>
       </View>
     </View>
   );
@@ -138,37 +133,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 16,
   },
-  card: {
-    borderRadius: 20,
-    padding: 24,
-    justifyContent: "center",
-    alignItems: "flex-start",
-    height: 160,
-    flex: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  cardFull: {
-    width: "100%",
-  },
-  cardBlue: {
-    backgroundColor: "#4285F4",
-  },
-  cardOrange: {
-    backgroundColor: "#EA4335", // Reddish Orange
-  },
-  cardTeal: {
-    backgroundColor: "#00BFA5",
-  },
-  cardText: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 12,
-  },
   footer: {
     position: "absolute",
     bottom: 40,
@@ -180,7 +144,7 @@ const styles = StyleSheet.create({
   },
   pillDock: {
     flexDirection: "row",
-    backgroundColor: "#1a1a1a", // Black/Dark Grey
+    backgroundColor: "#1a1a1a",
     borderRadius: 30,
     paddingVertical: 8,
     paddingHorizontal: 12,

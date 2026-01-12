@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package aiservice;
+
+// Go package option for code generation
+option go_package = "temandifa-backend/internal/grpc/aiservice";
+
+service AIService {
+  // Detects objects in an image
+  rpc DetectObjects (ImageRequest) returns (DetectionResponse);
+
+  // Extracts text from an image (OCR)
+  rpc ExtractText (OCRRequest) returns (OCRResponse);
+
+  // Transcribes audio to text
+  rpc TranscribeAudio (AudioRequest) returns (transcriptionResponse);
+
+  // Visual Question Answering (VQA)
+  rpc VisualQuestionAnswering (VQARequest) returns (VQAResponse);
+}
+
+// Common Types
+
+message ImageRequest {
+  bytes image_data = 1;      // Raw image bytes
+  string filename = 2;       // Original filename
+}
+
+message AudioRequest {
+  bytes audio_data = 1;      // Raw audio bytes
+  string filename = 2;       // Original filename
+  string language = 3;       // Optional language code
+}
+
+message VQARequest {
+  bytes image_data = 1;
+  string filename = 2;
+  string question = 3;
+}
+
+message VQAResponse {
+  bool success = 1;
+  string message = 2;
+  string answer = 3;
+}
+
+// Detection Types
+
+message DetectionResponse {
+  bool success = 1;
+  string message = 2;
+  repeated DetectedObject objects = 3;
+}
+
+message DetectedObject {
+  string label = 1;
+  float confidence = 2;
+  repeated float bbox = 3; // [x1, y1, x2, y2]
+}
+
+// OCR Types
+
+message OCRRequest {
+  bytes image_data = 1;
+  string filename = 2;
+  string language = 3; // en, id, ch
+}
+
+message OCRResponse {
+  bool success = 1;
+  string message = 2;
+  string full_text = 3;
+  repeated OCRLine lines = 4;
+}
+
+message OCRLine {
+  string text = 1;
+  float confidence = 2;
+  repeated float bbox = 3; // [x1, y1, x2, y2]
+}
+
+// Transcription Types
+
+message transcriptionResponse {
+  bool success = 1;
+  string text = 2;
+  string language = 3;
+  float duration = 4;
+}

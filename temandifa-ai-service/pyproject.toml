@@ -1,0 +1,13 @@
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+select = ["E", "F", "I", "UP"]
+ignore = []
+
+[tool.ruff.isort]
+known-first-party = ["app"]

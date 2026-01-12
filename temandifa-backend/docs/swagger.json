@@ -1,0 +1,357 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "TemanDifa API",
+    "description": "API for TemanDifa - Assistive AI Application for the Visually Impaired",
+    "contact": {
+      "name": "TemanDifa Support",
+      "email": "support@temandifa.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.0.0"
+  },
+  "host": "localhost:8080",
+  "basePath": "/api/v1",
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+    }
+  },
+  "tags": [
+    { "name": "Auth", "description": "Authentication endpoints" },
+    { "name": "AI", "description": "AI-powered features" },
+    { "name": "History", "description": "User activity history" },
+    { "name": "Cache", "description": "Cache management" },
+    { "name": "Health", "description": "Service health" }
+  ],
+  "paths": {
+    "/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "description": "Create a new user account",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["full_name", "email", "password"],
+              "properties": {
+                "full_name": { "type": "string", "example": "John Doe" },
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "example": "john@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "minLength": 8,
+                  "example": "securepassword123"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Registration successful" },
+          "400": { "description": "Validation failed" },
+          "409": { "description": "Email already registered" }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login user",
+        "description": "Authenticate user and return access/refresh token pair",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["email", "password"],
+              "properties": {
+                "email": { "type": "string", "format": "email" },
+                "password": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "access_token": { "type": "string" },
+                "refresh_token": { "type": "string" },
+                "expires_at": { "type": "string" },
+                "token_type": { "type": "string" },
+                "user": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "full_name": { "type": "string" },
+                    "email": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh access token",
+        "description": "Exchange refresh token for new access/refresh token pair",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["refresh_token"],
+              "properties": {
+                "refresh_token": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Token refreshed" },
+          "401": { "description": "Invalid or expired refresh token" }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout user",
+        "description": "Revoke the current refresh token",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["refresh_token"],
+              "properties": {
+                "refresh_token": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Logged out successfully" }
+        }
+      }
+    },
+    "/detect": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Detect objects in image",
+        "description": "Detect objects in an image using YOLOv8 with caching",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "required": true,
+            "description": "Image file (jpg, png, webp)"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Detection results" },
+          "400": { "description": "No file uploaded" },
+          "401": { "description": "Unauthorized" },
+          "502": { "description": "AI Service unavailable" }
+        }
+      }
+    },
+    "/ocr": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Extract text from image (OCR)",
+        "description": "Perform OCR on an image using PaddleOCR",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "required": true,
+            "description": "Image file"
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "type": "string",
+            "description": "Language: en, id, ch",
+            "default": "en"
+          }
+        ],
+        "responses": {
+          "200": { "description": "OCR results" },
+          "400": { "description": "No file uploaded" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/transcribe": {
+      "post": {
+        "tags": ["AI"],
+        "summary": "Transcribe audio to text",
+        "description": "Convert audio to text using OpenAI Whisper",
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "type": "file",
+            "required": true,
+            "description": "Audio file (mp3, wav, m4a, webm)"
+          }
+        ],
+        "responses": {
+          "200": { "description": "Transcription results" },
+          "400": { "description": "No file uploaded" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "tags": ["History"],
+        "summary": "Get user history",
+        "description": "Retrieve paginated user activity history",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "in": "query", "name": "page", "type": "integer", "default": 1 },
+          { "in": "query", "name": "limit", "type": "integer", "default": 20 }
+        ],
+        "responses": {
+          "200": { "description": "History list with pagination" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "post": {
+        "tags": ["History"],
+        "summary": "Create history entry",
+        "description": "Save a new activity to history",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["feature_type", "result_text"],
+              "properties": {
+                "feature_type": {
+                  "type": "string",
+                  "enum": ["OBJECT", "OCR", "VOICE"]
+                },
+                "input_source": { "type": "string" },
+                "result_text": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": { "description": "History saved" },
+          "401": { "description": "Unauthorized" }
+        }
+      },
+      "delete": {
+        "tags": ["History"],
+        "summary": "Clear all history",
+        "description": "Delete all history entries for the user",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "All history cleared" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/history/{id}": {
+      "delete": {
+        "tags": ["History"],
+        "summary": "Delete history entry",
+        "description": "Delete a specific history entry",
+        "produces": ["application/json"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "type": "integer",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": { "description": "History deleted" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/cache/stats": {
+      "get": {
+        "tags": ["Cache"],
+        "summary": "Get cache statistics",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Cache stats" } }
+      }
+    },
+    "/cache": {
+      "delete": {
+        "tags": ["Cache"],
+        "summary": "Clear all AI cache",
+        "security": [{ "BearerAuth": [] }],
+        "responses": { "200": { "description": "Cache cleared" } }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": { "200": { "description": "Service healthy" } }
+      }
+    }
+  }
+}

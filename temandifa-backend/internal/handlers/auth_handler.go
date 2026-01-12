@@ -1,79 +1,67 @@
 package handlers
 
 import (
-	"net/http"
-	"os"
+	"errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 
-	"temandifa-backend/internal/database"
+	"temandifa-backend/internal/dto"
+	apperrors "temandifa-backend/internal/errors"
+	"temandifa-backend/internal/helpers"
 	"temandifa-backend/internal/logger"
 	"temandifa-backend/internal/models"
+	"temandifa-backend/internal/response"
+	"temandifa-backend/internal/services"
 )
 
-type AuthHandler struct{}
-
-type RegisterInput struct {
-	FullName string `json:"full_name" binding:"required,min=2,max=100"`
-	Email    string `json:"email" binding:"required,email,max=255"`
-	Password string `json:"password" binding:"required,min=8,max=72"` // bcrypt max is 72 bytes
+type AuthHandler struct {
+	AuthService  services.AuthService
+	TokenService services.TokenService
 }
 
-type LoginInput struct {
-	Email    string `json:"email" binding:"required,email,max=255"`
-	Password string `json:"password" binding:"required,min=1,max=72"`
-}
-
-func getJwtSecret() []byte {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		// Only allow default secret in development mode
-		if os.Getenv("GIN_MODE") == "release" {
-			logger.Fatal("JWT_SECRET environment variable is required in production")
-		}
-		logger.Warn("Using default JWT secret. Set JWT_SECRET in production!")
-		return []byte("dev-secret-change-in-production")
+// NewAuthHandler creates a new AuthHandler
+func NewAuthHandler(authService services.AuthService, tokenService services.TokenService) *AuthHandler {
+	return &AuthHandler{
+		AuthService:  authService,
+		TokenService: tokenService,
 	}
-	if len(secret) < 32 {
-		logger.Fatal("JWT_SECRET must be at least 32 characters for security")
-	}
-	return []byte(secret)
 }
 
+// Register godoc
+//
+//	@Summary		Register a new user
+//	@Description	Create a new user account
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RegisterRequest	true	"Registration data"
+//	@Success		201		{object}	response.SuccessResponse{data=dto.UserResponse}
+//	@Failure		400		{object}	response.ErrorResponse
+//	@Failure		409		{object}	response.ErrorResponse
+//	@Router			/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
-	var input RegisterInput
+	var input dto.RegisterRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		logger.Debug("Register validation failed",
-			zap.Error(err),
-			zap.String("email", input.Email),
-		)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		validationErrors := helpers.FormatValidationError(err)
+		response.Error(c, 400, response.ErrCodeValidation, "Validation failed", validationErrors)
 		return
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	user, err := h.AuthService.Register(input)
 	if err != nil {
-		logger.Error("Failed to hash password", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-		return
-	}
-
-	user := models.User{
-		FullName: input.FullName,
-		Email:    input.Email,
-		Password: string(hashedPassword),
-	}
-
-	if result := database.DB.Create(&user); result.Error != nil {
-		logger.Warn("Registration failed - email may exist",
-			zap.Error(result.Error),
-			zap.String("email", input.Email),
-		)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already registered or DB error"})
+		if appErr, ok := apperrors.AsAppError(err); ok {
+			if errors.Is(err, apperrors.AlreadyExists("email")) {
+				logger.Warn("Registration failed - email may exist",
+					zap.String("email", input.Email),
+				)
+			}
+			apperrors.RespondError(c, appErr)
+			return
+		}
+		logger.Error("Failed to register user", zap.Error(err))
+		response.InternalError(c, "Failed to process registration")
 		return
 	}
 
@@ -82,57 +70,162 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		zap.String("email", user.Email),
 	)
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful", "user": user})
+	response.Created(c, user, "Registration successful")
 }
 
+// Login godoc
+//
+//	@Summary		Login user
+//	@Description	Authenticate user and return access/refresh token pair
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.LoginRequest	true	"Login credentials"
+//	@Success		200		{object}	response.SuccessResponse{data=dto.LoginResponse}
+//	@Failure		400		{object}	response.ErrorResponse
+//	@Failure		401		{object}	response.ErrorResponse
+//	@Router			/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
-	var input LoginInput
+	var input dto.LoginRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		logger.Debug("Login validation failed", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		validationErrors := helpers.FormatValidationError(err)
+		response.Error(c, 400, response.ErrCodeValidation, "Validation failed", validationErrors)
 		return
 	}
 
-	var user models.User
-	if err := database.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		logger.Debug("Login failed - user not found", zap.String("email", input.Email))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		logger.Debug("Login failed - invalid password", zap.String("email", input.Email))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	// Generate Token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
-		"exp": time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 days
-	})
-
-	tokenString, err := token.SignedString(getJwtSecret())
+	tokenResponse, err := h.AuthService.Login(input, c.GetHeader("User-Agent"), c.ClientIP())
 	if err != nil {
-		logger.Error("Failed to generate token",
-			zap.Error(err),
-			zap.Uint("user_id", user.ID),
-		)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		if appErr, ok := apperrors.AsAppError(err); ok {
+			if errors.Is(err, apperrors.ErrInvalidCredentials) {
+				logger.Debug("Login failed - invalid credentials", zap.String("email", input.Email))
+			}
+			apperrors.RespondError(c, appErr)
+			return
+		}
+		logger.Error("Login failed", zap.Error(err))
+		response.InternalError(c, "Login failed")
 		return
 	}
 
 	logger.Info("User logged in successfully",
-		zap.Uint("user_id", user.ID),
-		zap.String("email", user.Email),
+		zap.Uint("user_id", tokenResponse.User.ID),
+		zap.String("email", tokenResponse.User.Email),
 	)
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-		"user": gin.H{
-			"id":        user.ID,
-			"full_name": user.FullName,
-			"email":     user.Email,
-		},
+	response.Success(c, tokenResponse)
+}
+
+// Refresh godoc
+//
+//	@Summary		Refresh access token
+//	@Description	Exchange refresh token for new access/refresh token pair
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			input	body		dto.RefreshTokenRequest	true	"Refresh token"
+//	@Success		200		{object}	response.SuccessResponse{data=dto.TokenResponse}
+//	@Failure		400		{object}	response.ErrorResponse
+//	@Failure		401		{object}	response.ErrorResponse
+//	@Router			/refresh [post]
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	var input dto.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.Error(c, 400, response.ErrCodeValidation, "Refresh token is required")
+		return
+	}
+
+	tokenPair, err := h.TokenService.RefreshAccessToken(
+		input.RefreshToken,
+		c.GetHeader("User-Agent"),
+		c.ClientIP(),
+	)
+	if err != nil {
+		logger.Debug("Token refresh failed", zap.Error(err))
+		if appErr, ok := apperrors.AsAppError(err); ok {
+			apperrors.RespondError(c, appErr)
+			return
+		}
+		response.Error(c, 401, response.ErrCodeTokenExpired, "Token refresh failed")
+		return
+	}
+
+	// Get user info (TokenService already validated token)
+	userID, _ := h.TokenService.ValidateAccessToken(tokenPair.AccessToken)
+	
+	logger.Debug("Token refreshed",
+		zap.Uint("user_id", userID),
+	)
+	
+	// Construct response
+	
+	response.Success(c, gin.H{
+		"access_token":  tokenPair.AccessToken,
+		"refresh_token": tokenPair.RefreshToken,
+		"expires_at":    tokenPair.ExpiresAt,
+		"token_type":    tokenPair.TokenType,
 	})
+}
+
+// Logout godoc
+//
+//	@Summary		Logout user
+//	@Description	Revoke the current refresh token and blacklist access token
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			input	body		dto.RefreshTokenRequest	true	"Refresh token to revoke"
+//	@Success		200		{object}	response.SuccessResponse
+//	@Failure		400		{object}	response.ErrorResponse
+//	@Router			/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var input dto.RefreshTokenRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.Error(c, 400, response.ErrCodeValidation, "Refresh token is required")
+		return
+	}
+
+	// Revoke refresh token
+	if err := h.TokenService.RevokeRefreshToken(input.RefreshToken); err != nil {
+		logger.Debug("Logout failed - refresh token not found", zap.Error(err))
+	}
+
+	// Blacklist the access token to prevent reuse
+	authHeader := c.GetHeader("Authorization")
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		accessToken := authHeader[7:]
+		if err := services.BlacklistToken(c, accessToken, time.Hour); err != nil {
+			logger.Warn("Failed to blacklist access token", zap.Error(err))
+		}
+	}
+
+	logger.Debug("User logged out")
+	response.Success(c, nil, "Logged out successfully")
+}
+
+// LogoutAll godoc
+//
+//	@Summary		Logout from all devices
+//	@Description	Revoke all refresh tokens for the authenticated user
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	response.SuccessResponse
+//	@Failure		401	{object}	response.ErrorResponse
+//	@Router			/logout/all [post]
+func (h *AuthHandler) LogoutAll(c *gin.Context) {
+	user := c.MustGet("user").(models.User)
+
+	if err := h.TokenService.RevokeAllUserTokens(user.ID); err != nil {
+		logger.Error("Failed to revoke all tokens", zap.Error(err))
+		response.InternalError(c, "Failed to logout from all devices")
+		return
+	}
+
+	logger.Info("User logged out from all devices",
+		zap.Uint("user_id", user.ID),
+	)
+
+	response.Success(c, nil, "Logged out from all devices")
 }

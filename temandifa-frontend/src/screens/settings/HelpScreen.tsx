@@ -1,53 +1,54 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView } from "react-native";
-import { useTheme } from "../../context/ThemeContext";
+import { StyleSheet, ScrollView } from "react-native";
+import { useThemeStore } from "../../stores/themeStore";
+import { ThemedText } from "../../components/atoms/ThemedText";
+import { ThemedView } from "../../components/atoms/ThemedView";
 
 export default function HelpScreen() {
-  const { theme } = useTheme();
+  const { theme } = useThemeStore();
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={[styles.title, { color: theme.colors.text }]}>
-        Panduan Penggunaan
-      </Text>
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <ThemedText variant="title" style={styles.title}>
+          Panduan Penggunaan
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.primary }]}>
-        1. Deteksi Objek
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Pilih menu &quot;Kamera&quot; di halaman utama. Arahkan kamera ke objek
-        di sekitar Anda. Aplikasi akan menyebutkan nama objek yang terdeteksi
-        secara otomatis.
-      </Text>
+        <ThemedText variant="subtitle" style={styles.heading} color="primary">
+          1. Deteksi Objek
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Pilih menu &quot;Kamera&quot; di halaman utama. Arahkan kamera ke
+          objek di sekitar Anda. Aplikasi akan menyebutkan nama objek yang
+          terdeteksi secara otomatis.
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.primary }]}>
-        2. Membaca Teks (OCR)
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Pilih menu &quot;Scan&quot; di halaman utama. Potret dokumen atau
-        tulisan. Tunggu beberapa saat, dan aplikasi akan membacakan tulisan
-        tersebut untuk Anda.
-      </Text>
+        <ThemedText variant="subtitle" style={styles.heading} color="primary">
+          2. Membaca Teks (OCR)
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Pilih menu &quot;Scan&quot; di halaman utama. Potret dokumen atau
+          tulisan. Tunggu beberapa saat, dan aplikasi akan membacakan tulisan
+          tersebut untuk Anda.
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.primary }]}>
-        3. Perintah Suara
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Gunakan menu &quot;Voice&quot; untuk merekam suara Anda. Aplikasi akan
-        mengubah suara menjadi teks (Transkripsi) yang dapat disimpan atau
-        dibacakan ulang.
-      </Text>
+        <ThemedText variant="subtitle" style={styles.heading} color="primary">
+          3. Perintah Suara
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Gunakan menu &quot;Voice&quot; untuk merekam suara Anda. Aplikasi akan
+          mengubah suara menjadi teks (Transkripsi) yang dapat disimpan atau
+          dibacakan ulang.
+        </ThemedText>
 
-      <Text style={[styles.heading, { color: theme.colors.primary }]}>
-        Butuh Bantuan Lebih?
-      </Text>
-      <Text style={[styles.paragraph, { color: theme.colors.textSecondary }]}>
-        Hubungi tim support kami di support@temandifa.com
-      </Text>
-    </ScrollView>
+        <ThemedText variant="subtitle" style={styles.heading} color="primary">
+          Butuh Bantuan Lebih?
+        </ThemedText>
+        <ThemedText style={styles.paragraph} color={theme.colors.textSecondary}>
+          Hubungi tim support kami di support@temandifa.com
+        </ThemedText>
+      </ScrollView>
+    </ThemedView>
   );
 }
 

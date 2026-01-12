@@ -30,10 +30,8 @@ export function useNetworkStatus() {
   }, []);
 
   useEffect(() => {
-    // Initial check
     checkConnection();
 
-    // Check periodically every 30 seconds
     const interval = setInterval(checkConnection, 30000);
 
     return () => clearInterval(interval);
