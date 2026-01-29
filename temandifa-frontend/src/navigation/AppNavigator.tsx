@@ -71,8 +71,22 @@ export function AppNavigator() {
     },
   };
 
+  const linking = {
+    prefixes: ["temandifa://", "https://temandifa.com"],
+    config: {
+      screens: {
+        Login: "login",
+        Register: "register",
+        Home: "home",
+        History: "history",
+        Settings: "settings",
+        // Add more as needed
+      },
+    },
+  };
+
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} linking={linking}>
       <NetworkBanner />
       <OfflineBanner />
       <Stack.Navigator

@@ -112,46 +112,6 @@ def _preprocess_pil(content: bytes, max_dimension: int) -> np.ndarray:
         raise ValueError("Invalid image format")
 
 
-def get_image_info(content: bytes) -> dict:
-    """
-    Get image information without full processing.
-
-    Args:
-        content: Raw image bytes
-
-    Returns:
-        Dict with format, size, mode
-    """
-    if OPENCV_AVAILABLE:
-        try:
-            nparr = np.frombuffer(content, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img is not None:
-                height, width = img.shape[:2]
-                return {
-                    "format": "detected",
-                    "size": (width, height),
-                    "mode": "BGR",
-                    "bytes": len(content),
-                }
-        except Exception:
-            pass
-
-    # Fallback to PIL
-    try:
-        from PIL import Image as PILImage
-
-        img = PILImage.open(io.BytesIO(content))
-        return {
-            "format": img.format,
-            "size": img.size,
-            "mode": img.mode,
-            "bytes": len(content),
-        }
-    except Exception:
-        return {"error": "Cannot read image info"}
-
-
 def letterbox_image(
     image: np.ndarray, target_size: int = 640
 ) -> tuple[np.ndarray, float, tuple[float, float]]:

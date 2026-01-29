@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v6.33.2
-// source: ai_service.proto
+// source: proto/ai_service.proto
 
 package aiservice
 
@@ -31,7 +31,7 @@ type ImageRequest struct {
 
 func (x *ImageRequest) Reset() {
 	*x = ImageRequest{}
-	mi := &file_ai_service_proto_msgTypes[0]
+	mi := &file_proto_ai_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *ImageRequest) String() string {
 func (*ImageRequest) ProtoMessage() {}
 
 func (x *ImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[0]
+	mi := &file_proto_ai_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *ImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageRequest.ProtoReflect.Descriptor instead.
 func (*ImageRequest) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{0}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ImageRequest) GetImageData() []byte {
@@ -84,7 +84,7 @@ type AudioRequest struct {
 
 func (x *AudioRequest) Reset() {
 	*x = AudioRequest{}
-	mi := &file_ai_service_proto_msgTypes[1]
+	mi := &file_proto_ai_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -96,7 +96,7 @@ func (x *AudioRequest) String() string {
 func (*AudioRequest) ProtoMessage() {}
 
 func (x *AudioRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[1]
+	mi := &file_proto_ai_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -109,7 +109,7 @@ func (x *AudioRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AudioRequest.ProtoReflect.Descriptor instead.
 func (*AudioRequest) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{1}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AudioRequest) GetAudioData() []byte {
@@ -144,7 +144,7 @@ type VQARequest struct {
 
 func (x *VQARequest) Reset() {
 	*x = VQARequest{}
-	mi := &file_ai_service_proto_msgTypes[2]
+	mi := &file_proto_ai_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +156,7 @@ func (x *VQARequest) String() string {
 func (*VQARequest) ProtoMessage() {}
 
 func (x *VQARequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[2]
+	mi := &file_proto_ai_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +169,7 @@ func (x *VQARequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VQARequest.ProtoReflect.Descriptor instead.
 func (*VQARequest) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{2}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *VQARequest) GetImageData() []byte {
@@ -204,7 +204,7 @@ type VQAResponse struct {
 
 func (x *VQAResponse) Reset() {
 	*x = VQAResponse{}
-	mi := &file_ai_service_proto_msgTypes[3]
+	mi := &file_proto_ai_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -216,7 +216,7 @@ func (x *VQAResponse) String() string {
 func (*VQAResponse) ProtoMessage() {}
 
 func (x *VQAResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[3]
+	mi := &file_proto_ai_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +229,7 @@ func (x *VQAResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VQAResponse.ProtoReflect.Descriptor instead.
 func (*VQAResponse) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{3}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *VQAResponse) GetSuccess() bool {
@@ -264,7 +264,7 @@ type DetectionResponse struct {
 
 func (x *DetectionResponse) Reset() {
 	*x = DetectionResponse{}
-	mi := &file_ai_service_proto_msgTypes[4]
+	mi := &file_proto_ai_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +276,7 @@ func (x *DetectionResponse) String() string {
 func (*DetectionResponse) ProtoMessage() {}
 
 func (x *DetectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[4]
+	mi := &file_proto_ai_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +289,7 @@ func (x *DetectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetectionResponse.ProtoReflect.Descriptor instead.
 func (*DetectionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{4}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *DetectionResponse) GetSuccess() bool {
@@ -324,7 +324,7 @@ type DetectedObject struct {
 
 func (x *DetectedObject) Reset() {
 	*x = DetectedObject{}
-	mi := &file_ai_service_proto_msgTypes[5]
+	mi := &file_proto_ai_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +336,7 @@ func (x *DetectedObject) String() string {
 func (*DetectedObject) ProtoMessage() {}
 
 func (x *DetectedObject) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[5]
+	mi := &file_proto_ai_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +349,7 @@ func (x *DetectedObject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetectedObject.ProtoReflect.Descriptor instead.
 func (*DetectedObject) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{5}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DetectedObject) GetLabel() string {
@@ -384,7 +384,7 @@ type OCRRequest struct {
 
 func (x *OCRRequest) Reset() {
 	*x = OCRRequest{}
-	mi := &file_ai_service_proto_msgTypes[6]
+	mi := &file_proto_ai_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -396,7 +396,7 @@ func (x *OCRRequest) String() string {
 func (*OCRRequest) ProtoMessage() {}
 
 func (x *OCRRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[6]
+	mi := &file_proto_ai_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -409,7 +409,7 @@ func (x *OCRRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OCRRequest.ProtoReflect.Descriptor instead.
 func (*OCRRequest) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{6}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *OCRRequest) GetImageData() []byte {
@@ -445,7 +445,7 @@ type OCRResponse struct {
 
 func (x *OCRResponse) Reset() {
 	*x = OCRResponse{}
-	mi := &file_ai_service_proto_msgTypes[7]
+	mi := &file_proto_ai_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -457,7 +457,7 @@ func (x *OCRResponse) String() string {
 func (*OCRResponse) ProtoMessage() {}
 
 func (x *OCRResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[7]
+	mi := &file_proto_ai_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +470,7 @@ func (x *OCRResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OCRResponse.ProtoReflect.Descriptor instead.
 func (*OCRResponse) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{7}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *OCRResponse) GetSuccess() bool {
@@ -512,7 +512,7 @@ type OCRLine struct {
 
 func (x *OCRLine) Reset() {
 	*x = OCRLine{}
-	mi := &file_ai_service_proto_msgTypes[8]
+	mi := &file_proto_ai_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -524,7 +524,7 @@ func (x *OCRLine) String() string {
 func (*OCRLine) ProtoMessage() {}
 
 func (x *OCRLine) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[8]
+	mi := &file_proto_ai_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -537,7 +537,7 @@ func (x *OCRLine) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OCRLine.ProtoReflect.Descriptor instead.
 func (*OCRLine) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{8}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *OCRLine) GetText() string {
@@ -573,7 +573,7 @@ type TranscriptionResponse struct {
 
 func (x *TranscriptionResponse) Reset() {
 	*x = TranscriptionResponse{}
-	mi := &file_ai_service_proto_msgTypes[9]
+	mi := &file_proto_ai_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -585,7 +585,7 @@ func (x *TranscriptionResponse) String() string {
 func (*TranscriptionResponse) ProtoMessage() {}
 
 func (x *TranscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_service_proto_msgTypes[9]
+	mi := &file_proto_ai_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -598,7 +598,7 @@ func (x *TranscriptionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TranscriptionResponse.ProtoReflect.Descriptor instead.
 func (*TranscriptionResponse) Descriptor() ([]byte, []int) {
-	return file_ai_service_proto_rawDescGZIP(), []int{9}
+	return file_proto_ai_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TranscriptionResponse) GetSuccess() bool {
@@ -629,11 +629,11 @@ func (x *TranscriptionResponse) GetDuration() float32 {
 	return 0
 }
 
-var File_ai_service_proto protoreflect.FileDescriptor
+var File_proto_ai_service_proto protoreflect.FileDescriptor
 
-const file_ai_service_proto_rawDesc = "" +
+const file_proto_ai_service_proto_rawDesc = "" +
 	"\n" +
-	"\x10ai_service.proto\x12\taiservice\"I\n" +
+	"\x16proto/ai_service.proto\x12\taiservice\"I\n" +
 	"\fImageRequest\x12\x1d\n" +
 	"\n" +
 	"image_data\x18\x01 \x01(\fR\timageData\x12\x1a\n" +
@@ -692,19 +692,19 @@ const file_ai_service_proto_rawDesc = "" +
 	"\x17VisualQuestionAnswering\x12\x15.aiservice.VQARequest\x1a\x16.aiservice.VQAResponseB+Z)temandifa-backend/internal/grpc/aiserviceb\x06proto3"
 
 var (
-	file_ai_service_proto_rawDescOnce sync.Once
-	file_ai_service_proto_rawDescData []byte
+	file_proto_ai_service_proto_rawDescOnce sync.Once
+	file_proto_ai_service_proto_rawDescData []byte
 )
 
-func file_ai_service_proto_rawDescGZIP() []byte {
-	file_ai_service_proto_rawDescOnce.Do(func() {
-		file_ai_service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ai_service_proto_rawDesc), len(file_ai_service_proto_rawDesc)))
+func file_proto_ai_service_proto_rawDescGZIP() []byte {
+	file_proto_ai_service_proto_rawDescOnce.Do(func() {
+		file_proto_ai_service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ai_service_proto_rawDesc), len(file_proto_ai_service_proto_rawDesc)))
 	})
-	return file_ai_service_proto_rawDescData
+	return file_proto_ai_service_proto_rawDescData
 }
 
-var file_ai_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_ai_service_proto_goTypes = []any{
+var file_proto_ai_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_ai_service_proto_goTypes = []any{
 	(*ImageRequest)(nil),          // 0: aiservice.ImageRequest
 	(*AudioRequest)(nil),          // 1: aiservice.AudioRequest
 	(*VQARequest)(nil),            // 2: aiservice.VQARequest
@@ -716,7 +716,7 @@ var file_ai_service_proto_goTypes = []any{
 	(*OCRLine)(nil),               // 8: aiservice.OCRLine
 	(*TranscriptionResponse)(nil), // 9: aiservice.transcriptionResponse
 }
-var file_ai_service_proto_depIdxs = []int32{
+var file_proto_ai_service_proto_depIdxs = []int32{
 	5, // 0: aiservice.DetectionResponse.objects:type_name -> aiservice.DetectedObject
 	8, // 1: aiservice.OCRResponse.lines:type_name -> aiservice.OCRLine
 	0, // 2: aiservice.AIService.DetectObjects:input_type -> aiservice.ImageRequest
@@ -734,26 +734,26 @@ var file_ai_service_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_ai_service_proto_init() }
-func file_ai_service_proto_init() {
-	if File_ai_service_proto != nil {
+func init() { file_proto_ai_service_proto_init() }
+func file_proto_ai_service_proto_init() {
+	if File_proto_ai_service_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_service_proto_rawDesc), len(file_ai_service_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ai_service_proto_rawDesc), len(file_proto_ai_service_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_ai_service_proto_goTypes,
-		DependencyIndexes: file_ai_service_proto_depIdxs,
-		MessageInfos:      file_ai_service_proto_msgTypes,
+		GoTypes:           file_proto_ai_service_proto_goTypes,
+		DependencyIndexes: file_proto_ai_service_proto_depIdxs,
+		MessageInfos:      file_proto_ai_service_proto_msgTypes,
 	}.Build()
-	File_ai_service_proto = out.File
-	file_ai_service_proto_goTypes = nil
-	file_ai_service_proto_depIdxs = nil
+	File_proto_ai_service_proto = out.File
+	file_proto_ai_service_proto_goTypes = nil
+	file_proto_ai_service_proto_depIdxs = nil
 }

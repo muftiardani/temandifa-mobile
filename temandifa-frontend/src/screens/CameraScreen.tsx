@@ -4,12 +4,11 @@ import {
   Button,
   StyleSheet,
   View,
-  Image,
   ActivityIndicator,
   ScrollView,
   Switch,
-  Text,
 } from "react-native";
+import { Image } from "expo-image"; // Use expo-image for better performance
 import * as Speech from "expo-speech";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -74,7 +73,7 @@ export default function CameraScreen() {
 
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
-          base64: false,
+          base64: false, // We don't need base64, URI is enough and faster
         });
         if (photo) {
           setImage(photo.uri);
@@ -119,7 +118,7 @@ export default function CameraScreen() {
 
           try {
             await saveHistory("VQA", uri, answer);
-          } catch (err) {}
+          } catch {}
         } else {
           throw new Error(response.error || "VQA Failed");
         }
@@ -138,7 +137,7 @@ export default function CameraScreen() {
 
             try {
               await saveHistory("OBJECT", uri, labels);
-            } catch (err) {}
+            } catch {}
           } else {
             Speech.speak(t("camera.no_object"));
           }
@@ -173,7 +172,12 @@ export default function CameraScreen() {
   if (image) {
     return (
       <View style={styles.container}>
-        <Image source={{ uri: image }} style={styles.preview} />
+        <Image
+          source={{ uri: image }}
+          style={styles.preview}
+          contentFit="contain"
+          transition={200}
+        />
         {loading && <LoadingOverlay />}
 
         {!loading && (
@@ -256,7 +260,22 @@ export default function CameraScreen() {
       <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
         {/* Top Controls */}
         <View style={styles.topControls}>
-          <View style={styles.smartToggleContainer}>
+          <View
+            style={styles.smartToggleContainer}
+            accessible={true}
+            accessibilityLabel={`Mode Pintar AI. ${
+              smartMode ? "Aktif" : "Nonaktif"
+            }. Ketuk dua kali untuk mengubah.`}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: smartMode }}
+            accessibilityActions={[{ name: "activate", label: "Ubah" }]}
+            onAccessibilityAction={() => {
+              setSmartMode(!smartMode);
+              Speech.speak(
+                !smartMode ? "Mode Pintar Aktif" : "Mode Standar Aktif"
+              );
+            }}
+          >
             <ThemedText style={{ color: "white", fontWeight: "bold" }}>
               Model Pintar
             </ThemedText>
@@ -269,7 +288,10 @@ export default function CameraScreen() {
                 Speech.speak(val ? "Mode Pintar Aktif" : "Mode Standar Aktif");
               }}
               thumbColor={smartMode ? theme.colors.primary : "#f4f3f4"}
-              trackColor={{ false: "#767577", true: "rgba(33, 150, 243, 0.5)" }}
+              trackColor={{
+                false: "#767577",
+                true: "rgba(33, 150, 243, 0.5)",
+              }}
             />
           </View>
 

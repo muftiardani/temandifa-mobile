@@ -126,9 +126,3 @@ async def preprocess_images_batch_async(
     """
     tasks = [preprocess_image_async(img, max_dimension, quality) for img in images]
     return await asyncio.gather(*tasks)
-
-
-def shutdown_preprocessing_executor():
-    """Shutdown the preprocessing executor gracefully."""
-    _preprocessing_executor.shutdown(wait=True)
-    logger.info("Preprocessing executor shutdown complete")

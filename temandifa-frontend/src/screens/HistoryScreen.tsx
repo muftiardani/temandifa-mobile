@@ -62,42 +62,58 @@ export default function HistoryScreen() {
   };
 
   const renderItem: ListRenderItem<HistoryItem> = React.useCallback(
-    ({ item }) => (
-      <ThemedView variant="surface" style={styles.itemContainer}>
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: theme.colors.primary + "20" },
-          ]}
-        >
-          <Ionicons
-            name={getIconName(item.feature_type)}
-            size={24}
-            color={theme.colors.primary}
-          />
-        </View>
-        <View style={styles.textContainer}>
-          <ThemedText variant="subtitle" numberOfLines={1}>
-            {item.result_text || "Tidak ada hasil"}
-          </ThemedText>
-          <ThemedText variant="caption" color={theme.colors.textSecondary}>
-            {new Date(item.CreatedAt).toLocaleDateString()} •{" "}
-            {new Date(item.CreatedAt).toLocaleTimeString()}
-          </ThemedText>
-          <ThemedText variant="caption" color={theme.colors.textSecondary}>
-            {item.feature_type}
-          </ThemedText>
-        </View>
-        <AccessibleTouchableOpacity
-          onPress={() => handleDelete(item.ID)}
-          accessibilityLabel="Hapus item riwayat"
-          accessibilityRole="button"
-          style={styles.deleteButton}
-        >
-          <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
-        </AccessibleTouchableOpacity>
-      </ThemedView>
-    ),
+    ({ item }) => {
+      const formattedDate = new Date(item.CreatedAt).toLocaleDateString();
+      const formattedTime = new Date(item.CreatedAt).toLocaleTimeString();
+      const resultText = item.result_text || "Tidak ada hasil";
+
+      // Comprehensive label for TalkBack
+      const a11yLabel = `Riwayat ${item.feature_type}. Hasil: ${resultText}. Tanggal: ${formattedDate} pukul ${formattedTime}. Ketuk dua kali untuk menghapus.`;
+
+      return (
+        <ThemedView variant="surface" style={styles.itemContainer}>
+          <AccessibleTouchableOpacity
+            style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            onPress={() => handleDelete(item.ID)}
+            accessibilityLabel={a11yLabel}
+            accessibilityHint="Menghapus item ini dari riwayat"
+          >
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: theme.colors.primary + "20" },
+              ]}
+            >
+              <Ionicons
+                name={getIconName(item.feature_type)}
+                size={24}
+                color={theme.colors.primary}
+                importantForAccessibility="no-hide-descendants"
+              />
+            </View>
+            <View style={styles.textContainer}>
+              <ThemedText variant="subtitle" numberOfLines={1}>
+                {resultText}
+              </ThemedText>
+              <ThemedText variant="caption" color={theme.colors.textSecondary}>
+                {formattedDate} • {formattedTime}
+              </ThemedText>
+              <ThemedText variant="caption" color={theme.colors.textSecondary}>
+                {item.feature_type}
+              </ThemedText>
+            </View>
+            <View style={styles.deleteButton}>
+              <Ionicons
+                name="trash-outline"
+                size={20}
+                color={theme.colors.error}
+                importantForAccessibility="no-hide-descendants"
+              />
+            </View>
+          </AccessibleTouchableOpacity>
+        </ThemedView>
+      );
+    },
     [theme, handleDelete]
   );
 

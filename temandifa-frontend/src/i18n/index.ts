@@ -17,6 +17,7 @@ const getLocales = () => {
 const locales = getLocales();
 const deviceLanguage = locales[0]?.languageCode || "id";
 
+// eslint-disable-next-line import/no-named-as-default-member
 i18next.use(initReactI18next).init({
   resources: {
     en: { translation: en },

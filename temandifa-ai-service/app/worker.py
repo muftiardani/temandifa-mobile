@@ -255,7 +255,6 @@ async def serve():
     with contextlib.suppress(asyncio.CancelledError):
         await _shutdown_event.wait()
 
-
     logger.info("Graceful shutdown initiated...")
 
     # Graceful shutdown with timeout

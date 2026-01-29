@@ -83,13 +83,15 @@ services:
     container_name: temandifa_ai
     restart: always
     ports:
-      - "8000:8000"
-      - "50051:50051" # gRPC port (optional, for external access)
+      - "127.0.0.1:8000:8000" # Localhost only (Debug)
+      # - "50051:50051"       # Disabled (Internal Only)
     environment:
       - PORT=8000
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - REDIS_URL=redis://redis:6379/0
       - ENABLE_VQA=true
+    # Critical: PyTorch needs shared memory for DataLoader
+    shm_size: "2gb"
     # Optional: Mount models directory to persist downloaded models
     volumes:
       - ai_models:/app/models

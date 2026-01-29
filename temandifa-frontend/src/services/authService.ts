@@ -69,39 +69,6 @@ export const register = async (
   }
 };
 
-export const refreshTokens = async (
-  refreshToken: string
-): Promise<LoginResult> => {
-  try {
-    Logger.info("AuthService", "Refreshing tokens...");
-    const response = await apiClient.post("/refresh", {
-      refresh_token: refreshToken,
-    });
-
-    // Validate with Zod
-    const parsed = AuthResponseSchema.parse(response.data);
-    const data = parsed.data;
-
-    Logger.info("AuthService", "Token refresh success");
-
-    return {
-      tokens: {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_at,
-      },
-      user: data.user,
-    };
-  } catch (error: unknown) {
-    Logger.error(
-      "AuthService",
-      "Token refresh failed:",
-      getErrorMessage(error)
-    );
-    throw getErrorMessage(error);
-  }
-};
-
 export const logout = async (refreshToken: string): Promise<void> => {
   try {
     await apiClient.post("/logout", { refresh_token: refreshToken });

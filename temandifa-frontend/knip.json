@@ -1,0 +1,14 @@
+{
+  "entry": ["App.tsx", "index.js", "index.ts", "src/i18n/index.ts"],
+  "project": ["src/**/*.{ts,tsx,js,jsx,json}"],
+  "ignore": ["**/*.d.ts", "src/types/**/*.ts"],
+  "ignoreDependencies": [
+    "expo-status-bar",
+    "expo-splash-screen",
+    "expo-system-ui",
+    "react-native-web",
+    "react-dom",
+    "@expo/metro-runtime"
+  ],
+  "ignoreExportsUsedInFile": true
+}

@@ -39,8 +39,8 @@ func NewHealthHandler(db *gorm.DB, redis *redis.Client, aiServiceURL string) *He
 //	@Description	Get comprehensive health status of all services with latency info
 //	@Tags			Health
 //	@Produce		json
-//	@Success		200	{object}	HealthResponse
-//	@Failure		503	{object}	HealthResponse
+//	@Success		200	{object}	dto.HealthResponse
+//	@Failure		503	{object}	dto.HealthResponse
 //	@Router			/health [get]
 func (h *HealthHandler) CheckHealth(c *gin.Context) {
 	response := dto.HealthResponse{

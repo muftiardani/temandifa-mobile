@@ -27,8 +27,8 @@ type AIClient struct {
 // address should be "host:port", e.g., "ai-service:50051"
 func NewAIClient(address string) (*AIClient, func(), error) {
 	// 5 seconds timeout for connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// 5 seconds timeout was previously used for DialContext, but NewClient is non-blocking.
+	// We keep the signature but remove the unused context.
 
 	// Connect to gRPC server
 	// Using insecure for internal communication within Docker network
@@ -38,14 +38,18 @@ func NewAIClient(address string) (*AIClient, func(), error) {
 		PermitWithoutStream: true,             // send pings even without active streams
 	}
 
-	conn, err := grpc.DialContext(ctx, address, //nolint:staticcheck
+	conn, err := grpc.NewClient(address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithBlock(), //nolint:staticcheck
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to connect to ai service: %w", err)
+		return nil, nil, fmt.Errorf("failed to create gRPC client: %w", err)
 	}
+
+	// Wait for connection (since we removed WithBlock) or fail fast
+	// Note: NewClient doesn't block, so we might want to check connectivity explicitly or let the first call handle it.
+	// For backward compatibility with previous logic, we can verify state, but NewClient design philosophy is "lazy connection".
+	// We will rely on the first call to Connect.
 
 	client := pb.NewAIServiceClient(conn)
 

@@ -1,13 +1,6 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  SafeAreaView,
-} from "react-native";
+import { View, StyleSheet, ScrollView, SafeAreaView } from "react-native";
+import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,7 +52,7 @@ export default function ScanScreen() {
         <Image
           source={{ uri: selectedImage }}
           style={styles.previewImage}
-          resizeMode="contain"
+          contentFit="contain"
         />
 
         <ThemedView style={styles.textArea} variant="surface">

@@ -11,7 +11,7 @@ type RefreshToken struct {
 	gorm.Model
 	UserID    uint       `gorm:"index;not null" json:"user_id"`
 	Token     string     `gorm:"uniqueIndex;not null;size:512" json:"-"`
-	ExpiresAt time.Time  `gorm:"not null" json:"expires_at"`
+	ExpiresAt time.Time  `gorm:"not null;index" json:"expires_at"`
 	Revoked   bool       `gorm:"default:false" json:"revoked"`
 	RevokedAt *time.Time `json:"revoked_at,omitempty"`
 

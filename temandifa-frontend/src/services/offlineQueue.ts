@@ -147,18 +147,43 @@ class OfflineQueueService {
       count: this.queue.length,
     });
 
-    for (const request of this.queue) {
+    // Use a standard for loop to allow index manipulation if needed
+    for (let i = 0; i < this.queue.length; i++) {
+      const request = this.queue[i];
+
       try {
         await this.executeRequest(request);
         successCount++;
         Logger.info("OfflineQueue", "Request synced:", request.id);
-      } catch (error) {
+      } catch (error: any) {
+        // Handle 401 specifically: Pause sync to prevent data loss
+        if (error.response && error.response.status === 401) {
+          Logger.warn(
+            "OfflineQueue",
+            "Auth error (401) during sync. Pausing queue to prevent data loss.",
+            { id: request.id }
+          );
+
+          // Add current request to failedRequests without incrementing retry (it's not a logic error)
+          failedRequests.push(request);
+
+          // Add all remaining requests to failedRequests effectively verifying them for next time
+          const remaining = this.queue.slice(i + 1);
+          failedRequests.push(...remaining);
+
+          Logger.info("OfflineQueue", "Queue paused", {
+            savedCount: failedRequests.length,
+          });
+
+          break; // Stop syncing immediately
+        }
+
         Logger.error("OfflineQueue", "Request failed:", {
           id: request.id,
           error,
         });
 
-        // Increment retry count
+        // Increment retry count for non-auth errors
         request.retryCount++;
 
         // Keep in queue if retries remaining
@@ -312,16 +337,3 @@ class OfflineQueueService {
 
 // Singleton instance
 export const offlineQueue = new OfflineQueueService();
-
-// Helper function to add history to queue when offline
-export async function queueHistorySave(
-  featureType: "OBJECT" | "OCR" | "VOICE",
-  inputSource: string,
-  resultText: string
-): Promise<string> {
-  return offlineQueue.addToQueue("/history", "POST", {
-    feature_type: featureType,
-    input_source: inputSource,
-    result_text: resultText,
-  });
-}

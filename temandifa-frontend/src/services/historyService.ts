@@ -111,26 +111,3 @@ export const deleteHistory = async (
     throw error;
   }
 };
-
-/**
- * Clear all history
- */
-export const clearAllHistory = async (): Promise<number> => {
-  try {
-    Logger.info("HistoryService", "Clearing all history...");
-    const response = await apiClient.delete<{
-      message: string;
-      deleted: number;
-    }>("/history");
-    return response.data.deleted;
-  } catch (error) {
-    Logger.error("HistoryService", "Clear error:", getErrorMessage(error));
-    throw error;
-  }
-};
-
-export function isQueuedResult(
-  result: HistoryItem | { queued: true; id: string }
-): result is { queued: true; id: string } {
-  return "queued" in result && result.queued === true;
-}

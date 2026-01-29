@@ -1,0 +1,840 @@
+basePath: /api/v1
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  internal_handlers.CreateHistoryInput:
+    description: History creation input
+    properties:
+      feature_type:
+        enum:
+        - OBJECT
+        - OCR
+        - VOICE
+        example: OBJECT
+        type: string
+      input_source:
+        example: camera_capture
+        maxLength: 500
+        type: string
+      result_text:
+        example: 'Detected: person, car'
+        maxLength: 10000
+        type: string
+    required:
+    - feature_type
+    type: object
+  temandifa-backend_internal_dto.HealthCheck:
+    properties:
+      latency_ms:
+        type: integer
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  temandifa-backend_internal_dto.HealthResponse:
+    properties:
+      checks:
+        additionalProperties:
+          $ref: '#/definitions/temandifa-backend_internal_dto.HealthCheck'
+        type: object
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
+  temandifa-backend_internal_dto.LoginRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  temandifa-backend_internal_dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/temandifa-backend_internal_dto.UserInfo'
+    type: object
+  temandifa-backend_internal_dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  temandifa-backend_internal_dto.RegisterRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    type: object
+  temandifa-backend_internal_dto.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_at:
+        type: string
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  temandifa-backend_internal_dto.UserInfo:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  temandifa-backend_internal_dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      profile_picture:
+        type: string
+      role:
+        type: string
+    type: object
+  temandifa-backend_internal_helpers.Pagination:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  temandifa-backend_internal_models.FeatureType:
+    enum:
+    - OBJECT
+    - OCR
+    - VOICE
+    type: string
+    x-enum-varnames:
+    - FeatureObject
+    - FeatureOCR
+    - FeatureVoice
+  temandifa-backend_internal_models.History:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      feature_type:
+        allOf:
+        - $ref: '#/definitions/temandifa-backend_internal_models.FeatureType'
+        description: OBJECT, OCR, VOICE
+      id:
+        type: integer
+      input_source:
+        description: URL or filename of image/audio
+        type: string
+      result_text:
+        description: Classification result or transcribed text
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  temandifa-backend_internal_response.ErrorCode:
+    enum:
+    - UNAUTHORIZED
+    - INVALID_CREDENTIALS
+    - TOKEN_EXPIRED
+    - TOKEN_INVALID
+    - TOKEN_REVOKED
+    - FORBIDDEN
+    - VALIDATION_ERROR
+    - INVALID_INPUT
+    - MISSING_FIELD
+    - INVALID_FORMAT
+    - NOT_FOUND
+    - CONFLICT
+    - ALREADY_EXISTS
+    - RATE_LIMITED
+    - AI_SERVICE_UNAVAILABLE
+    - AI_SERVICE_ERROR
+    - DATABASE_ERROR
+    - CACHE_ERROR
+    - EXTERNAL_SERVICE_ERROR
+    - INTERNAL_ERROR
+    - TIMEOUT
+    - SERVICE_UNAVAILABLE
+    - FILE_TOO_LARGE
+    - INVALID_FILE_TYPE
+    - UNAUTHORIZED
+    - TOKEN_INVALID
+    - TOKEN_EXPIRED
+    - INVALID_CREDENTIALS
+    - VALIDATION_ERROR
+    - INVALID_INPUT
+    - MISSING_FIELD
+    - NOT_FOUND
+    - ALREADY_EXISTS
+    - CONFLICT
+    - RATE_LIMITED
+    - INTERNAL_ERROR
+    - SERVICE_UNAVAILABLE
+    - DATABASE_ERROR
+    - AI_SERVICE_ERROR
+    - FILE_TOO_LARGE
+    - INVALID_FILE_TYPE
+    type: string
+    x-enum-varnames:
+    - ErrCodeUnauthorized
+    - ErrCodeInvalidToken
+    - ErrCodeTokenExpired
+    - ErrCodeInvalidCredentials
+    - ErrCodeValidation
+    - ErrCodeInvalidInput
+    - ErrCodeMissingField
+    - ErrCodeNotFound
+    - ErrCodeAlreadyExists
+    - ErrCodeConflict
+    - ErrCodeRateLimited
+    - ErrCodeInternal
+    - ErrCodeServiceUnavailable
+    - ErrCodeDatabaseError
+    - ErrCodeAIServiceError
+    - ErrCodeFileTooLarge
+    - ErrCodeInvalidFileType
+  temandifa-backend_internal_response.ErrorInfo:
+    properties:
+      code:
+        $ref: '#/definitions/temandifa-backend_internal_response.ErrorCode'
+      details: {}
+      message:
+        type: string
+    type: object
+  temandifa-backend_internal_response.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/temandifa-backend_internal_response.ErrorInfo'
+      request_id:
+        type: string
+      success:
+        type: boolean
+    type: object
+  temandifa-backend_internal_response.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      meta: {}
+      request_id:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@temandifa.com
+    name: TemanDifa Support
+  description: API for TemanDifa - Assistive AI Application for the Visually Impaired
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: TemanDifa API
+  version: 1.0.0
+paths:
+  /ask:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Ask a question about an image (VQA) using Google Gemini via gRPC
+      parameters:
+      - description: Image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Question about the image
+        in: formData
+        name: question
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Visual Question Answering
+      tags:
+      - AI
+  /cache:
+    delete:
+      description: Clear all AI-related cache entries (detection, OCR, transcription)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Total deleted count
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "403":
+          description: Forbidden (Admin only)
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear all AI cache
+      tags:
+      - Cache
+  /cache/detection:
+    delete:
+      description: Clear all object detection cache entries
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deleted count
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "403":
+          description: Forbidden (Admin only)
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "500":
+          description: Failed to clear cache
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear detection cache
+      tags:
+      - Cache
+  /cache/ocr:
+    delete:
+      description: Clear all OCR cache entries
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deleted count
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "403":
+          description: Forbidden (Admin only)
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "500":
+          description: Failed to clear cache
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear OCR cache
+      tags:
+      - Cache
+  /cache/stats:
+    get:
+      description: Get Redis cache hit/miss statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cache statistics
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "403":
+          description: Forbidden (Admin only)
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get cache statistics
+      tags:
+      - Cache
+  /cache/transcription:
+    delete:
+      description: Clear all audio transcription cache entries
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deleted count
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "403":
+          description: Forbidden (Admin only)
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "500":
+          description: Failed to clear cache
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear transcription cache
+      tags:
+      - Cache
+  /detect:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Detect objects in an image using YOLOv8 with caching (via gRPC)
+      parameters:
+      - description: Image file (jpg, png, webp)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Detection results
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: No file uploaded
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "502":
+          description: AI Service unavailable
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detect objects in image
+      tags:
+      - AI
+  /health:
+    get:
+      description: Get comprehensive health status of all services with latency info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_dto.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_dto.HealthResponse'
+      summary: Health Check
+      tags:
+      - Health
+  /history:
+    delete:
+      consumes:
+      - application/json
+      description: Delete all history entries for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  properties:
+                    deleted:
+                      type: integer
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear all history
+      tags:
+      - History
+    get:
+      consumes:
+      - application/json
+      description: Get paginated history for authenticated user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/temandifa-backend_internal_models.History'
+                  type: array
+                meta:
+                  $ref: '#/definitions/temandifa-backend_internal_helpers.Pagination'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user history
+      tags:
+      - History
+    post:
+      consumes:
+      - application/json
+      description: Save a new history entry for authenticated user
+      parameters:
+      - description: History data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/internal_handlers.CreateHistoryInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/temandifa-backend_internal_models.History'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create history entry
+      tags:
+      - History
+  /history/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a specific history entry by ID
+      parameters:
+      - description: History ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete history entry
+      tags:
+      - History
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return access/refresh token pair
+      parameters:
+      - description: Login credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/temandifa-backend_internal_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/temandifa-backend_internal_dto.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke the current refresh token and blacklist access token
+      parameters:
+      - description: Refresh token to revoke
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/temandifa-backend_internal_dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Auth
+  /logout/all:
+    post:
+      consumes:
+      - application/json
+      description: Revoke all refresh tokens for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout from all devices
+      tags:
+      - Auth
+  /ocr:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Perform OCR on an image using PaddleOCR via gRPC
+      parameters:
+      - description: Image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - default: en
+        description: 'Language: en, id, ch'
+        in: query
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Extract text from image (OCR)
+      tags:
+      - AI
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchange refresh token for new access/refresh token pair
+      parameters:
+      - description: Refresh token
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/temandifa-backend_internal_dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/temandifa-backend_internal_dto.TokenResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: Registration data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/temandifa-backend_internal_dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/temandifa-backend_internal_response.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/temandifa-backend_internal_dto.UserResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/temandifa-backend_internal_response.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /transcribe:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Convert audio to text using Whisper via gRPC
+      parameters:
+      - description: Audio file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Transcribe audio to text
+      tags:
+      - AI
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT Authorization header using the Bearer scheme. Example: "Bearer
+      {token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

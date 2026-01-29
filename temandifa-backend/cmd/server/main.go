@@ -47,6 +47,9 @@ import (
 
 func main() {
 	fx.New(
+		// Set graceful shutdown timeout to 45s (must be > srv.Shutdown timeout of 30s + cache wait 5s)
+		fx.StopTimeout(45*time.Second),
+
 		// Provide basic infrastructure
 		fx.Provide(
 			// Config
@@ -122,6 +125,7 @@ func NewHTTPServer(cfg *config.Config) *gin.Engine {
 	r := gin.New()
 
 	// Global middleware
+	r.Use(middleware.CORSMiddleware()) // Add CORS first to handle preflight requests
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.MaxBodySize(cfg.MaxBodySize))
 	r.Use(gzip.Gzip(gzip.DefaultCompression))

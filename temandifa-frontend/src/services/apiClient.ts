@@ -5,10 +5,10 @@ import axios, {
 } from "axios";
 import * as SecureStore from "expo-secure-store";
 
+import { ENV } from "../config/env";
 import { Logger } from "./logger";
 
-const API_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:8080/api/v1";
+const API_URL = ENV.API_URL;
 
 Logger.info("ApiClient", "Initialized with API_URL:", { API_URL });
 

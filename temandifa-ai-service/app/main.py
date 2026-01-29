@@ -125,10 +125,11 @@ def read_root():
 
 
 @app.get("/health", response_model=HealthResponse)
-async def health_check():
+async def health_check(response: Response):
     """
     Comprehensive health check.
     Checks if gRPC process is running AND if gRPC server is responsive.
+    Returns HTTP 503 if critical components are down to trigger Docker restart.
     """
     is_process_alive = grpc_process.is_alive() if grpc_process else False
     is_grpc_responsive = False
@@ -153,6 +154,8 @@ async def health_check():
     status_str = "healthy"
     if not is_process_alive:
         status_str = "critical"
+        # Fail fast: Tell Docker this container is broken and needs restart
+        response.status_code = 503
     elif not is_grpc_responsive:
         status_str = "degraded"  # Process up but gRPC not ready
 

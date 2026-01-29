@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
-  Button,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from "react-native";
+import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
+import { ThemedText } from "../components/atoms/ThemedText";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../stores/authStore";
 import { useNavigation } from "@react-navigation/native";
@@ -16,6 +15,7 @@ import { useThemeStore } from "../stores/themeStore";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 import Toast from "react-native-toast-message";
+import { AccessibleTextInput } from "../components/molecules/AccessibleTextInput";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -37,7 +37,12 @@ export default function LoginScreen() {
         text2: "Selamat datang kembali!",
       });
     } catch (e: any) {
-      Alert.alert("Login Gagal", e.toString());
+      // Use Toast for error instead of Alert
+      Toast.show({
+        type: "error",
+        text1: "Login Gagal",
+        text2: e.toString(),
+      });
     } finally {
       setLoading(false);
     }
@@ -52,7 +57,11 @@ export default function LoginScreen() {
         text1: "Login Biometrik Berhasil",
       });
     } catch {
-      Alert.alert("Login Gagal", "Verifikasi biometrik gagal atau dibatalkan.");
+      Toast.show({
+        type: "error",
+        text1: "Login Gagal",
+        text2: "Verifikasi biometrik gagal atau dibatalkan.",
+      });
     } finally {
       setLoading(false);
     }
@@ -64,53 +73,45 @@ export default function LoginScreen() {
     >
       <Text style={[styles.title, { color: theme.colors.text }]}>Masuk</Text>
 
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: theme.colors.surface,
-            color: theme.colors.text,
-            borderColor: theme.colors.border,
-          },
-        ]}
-        placeholder="Email"
-        placeholderTextColor={theme.colors.textSecondary}
+      <AccessibleTextInput
+        label="Email"
+        placeholder="nama@email.com"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        accessibilityHint="Masukkan alamat email anda"
       />
 
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: theme.colors.surface,
-            color: theme.colors.text,
-            borderColor: theme.colors.border,
-          },
-        ]}
-        placeholder="Password"
-        placeholderTextColor={theme.colors.textSecondary}
+      <AccessibleTextInput
+        label="Password"
+        placeholder="******"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        accessibilityHint="Masukkan kata sandi anda"
       />
 
       {loading ? (
         <ActivityIndicator size="large" color={theme.colors.primary} />
       ) : (
         <View style={styles.buttonContainer}>
-          <Button
-            title="Masuk"
+          <AccessibleTouchableOpacity
+            style={[styles.button, { backgroundColor: theme.colors.primary }]}
             onPress={handleLogin}
-            color={theme.colors.primary}
-          />
+            accessibilityLabel="Tombol Masuk"
+            accessibilityHint="Menekan tombol ini akan memproses login"
+            accessibilityRole="button"
+          >
+            <ThemedText style={styles.buttonText}>Masuk</ThemedText>
+          </AccessibleTouchableOpacity>
 
           {isBiometricEnabled && (
             <TouchableOpacity
               style={[styles.bioButton, { borderColor: theme.colors.primary }]}
               onPress={handleBiometricLogin}
+              accessibilityLabel="Login dengan Biometrik"
+              accessibilityRole="button"
             >
               <Ionicons
                 name="finger-print"
@@ -124,16 +125,28 @@ export default function LoginScreen() {
           )}
 
           <View style={{ marginTop: 10 }}>
-            <Button
-              title="Masuk sebagai Tamu"
+            <AccessibleTouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: theme.colors.textSecondary },
+              ]}
               onPress={loginAsGuest}
-              color={theme.colors.textSecondary}
-            />
+              accessibilityLabel="Masuk sebagai Tamu"
+              accessibilityRole="button"
+            >
+              <ThemedText style={styles.buttonText}>
+                Masuk sebagai Tamu
+              </ThemedText>
+            </AccessibleTouchableOpacity>
           </View>
         </View>
       )}
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register" as any)}>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Register" as any)}
+        accessibilityRole="link"
+        accessibilityLabel="Belum punya akun? Daftar sekarang"
+      >
         <Text style={[styles.link, { color: theme.colors.primary }]}>
           Belum punya akun? Daftar
         </Text>
@@ -163,6 +176,17 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginBottom: 20,
     gap: 10,
+  },
+  button: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   guestButton: {
     backgroundColor: "#e0e0e0",

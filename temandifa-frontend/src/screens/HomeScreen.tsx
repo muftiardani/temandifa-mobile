@@ -10,6 +10,7 @@ import { ThemedText } from "../components/atoms/ThemedText";
 
 import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 import { FeatureCard } from "../components/molecules/FeatureCard";
+import { useScreenReaderFocus } from "../hooks/useScreenReaderFocus";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -20,6 +21,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { t } = useTranslation();
   const { theme } = useThemeStore();
+  const focusRef = useScreenReaderFocus();
 
   const handleEmergency = () => {
     Alert.alert(
@@ -34,7 +36,9 @@ export default function HomeScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <ThemedText variant="title">{t("greeting.welcome")}</ThemedText>
+          <ThemedText variant="title" ref={focusRef}>
+            {t("greeting.welcome")}
+          </ThemedText>
           <ThemedText variant="subtitle" style={{ marginTop: 8 }}>
             {t("greeting.ask_help")}
           </ThemedText>

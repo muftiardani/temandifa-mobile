@@ -4,10 +4,10 @@ import {
   Button,
   StyleSheet,
   View,
-  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Image } from "expo-image";
 import * as Speech from "expo-speech";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -16,7 +16,6 @@ import { ThemedText } from "../components/atoms/ThemedText";
 import { ThemedView } from "../components/atoms/ThemedView";
 import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
 
-import { scanText } from "../services/ocrService";
 import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
 import { Logger } from "../services/logger";
 import { optimizeImageForOCR } from "../utils/imageUtils";
@@ -90,7 +89,12 @@ export default function DocumentScannerScreen() {
   if (image) {
     return (
       <View style={styles.container}>
-        <Image source={{ uri: image }} style={styles.preview} />
+        <Image
+          source={{ uri: image }}
+          style={styles.preview}
+          contentFit="contain"
+          transition={200}
+        />
 
         {loading && <LoadingOverlay />}
 

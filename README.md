@@ -555,7 +555,7 @@ Scan QR code dengan **Expo Go** app di smartphone Anda.
 | `POST` | `/api/v1/detect`     | Object detection (YOLOv8)     |
 | `POST` | `/api/v1/ocr`        | Text extraction (PaddleOCR)   |
 | `POST` | `/api/v1/transcribe` | Audio transcription (Whisper) |
-| `POST` | `/api/v1/ai/ask`     | **VQA (Gemini)** ⭐ NEW       |
+| `POST` | `/api/v1/ai/ask`     | VQA (Gemini)                  |
 
 ### History
 
@@ -675,7 +675,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 </p>
 
 <p align="center">
-  <strong>🦮 TemanDifa - Teman Setia Penyandang Disabilitas Netra 🦮</strong>
+  <strong>**TemanDifa** - Teman Setia Penyandang Disabilitas Netra</strong>
 </p>
 
 <p align="center">
