@@ -675,7 +675,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 </p>
 
 <p align="center">
-  <strong>**TemanDifa** - Teman Setia Penyandang Disabilitas Netra</strong>
+  <strong>👨‍🦯 TemanDifa - Teman Setia Penyandang Disabilitas Netra 👨‍🦯</strong>
 </p>
 
 <p align="center">
