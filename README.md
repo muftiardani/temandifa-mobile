@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/TemanDifa-AI%20Accessibility%20App-6366f1?style=for-the-badge&logo=react&logoColor=white" alt="TemanDifa"/>
 </p>
 
-<h1 align="center">🦮 TemanDifa</h1>
+<h1 align="center">👨‍🦯 TemanDifa</h1>
 
 <p align="center">
   <strong>Aplikasi AI untuk Membantu Penyandang Disabilitas Netra</strong>
@@ -12,7 +12,6 @@
   <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?style=flat-square&logo=react" alt="React Native"/>
   <img src="https://img.shields.io/badge/Expo-SDK_54-000020?style=flat-square&logo=expo" alt="Expo"/>
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go" alt="Go"/>
-  <img src="https://img.shields.io/badge/Uber_Fx-DI-black?style=flat-square&logo=uber" alt="Uber Fx"/>
   <img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=flat-square&logo=fastapi" alt="FastAPI"/>
   <img src="https://img.shields.io/badge/gRPC-Protocol-244c5a?style=flat-square&logo=grpc" alt="gRPC"/>
 </p>
@@ -35,7 +34,7 @@
 
 ## 📖 Tentang TemanDifa
 
-**TemanDifa** adalah aplikasi mobile berbasis AI yang dirancang khusus untuk membantu penyandang disabilitas netra dalam aktivitas sehari-hari. Dengan memanfaatkan teknologi _Computer Vision_, _Speech Recognition_, dan _Generative AI_, TemanDifa menjadi "teman" yang selalu siap membantu.
+**TemanDifa** adalah aplikasi mobile berbasis AI yang dirancang khusus untuk membantu penyandang disabilitas netra dalam aktivitas sehari-hari. Dengan memanfaatkan teknologi _Computer Vision_, _Speech Recognition_, dan _Generative AI_, TemanDifa menjadi **"teman"** yang selalu siap membantu.
 
 ### 🎯 Misi Kami
 
@@ -44,7 +43,7 @@
 - 👁️ Membantu identifikasi objek di sekitar pengguna
 - 📄 Membacakan teks dari dokumen/gambar
 - 🎤 Mengkonversi suara menjadi teks
-- 🧠 **BARU!** Menjawab pertanyaan tentang gambar dengan AI
+- 🧠 Menjawab pertanyaan tentang gambar dengan AI
 - ♿ Menyediakan antarmuka yang sepenuhnya aksesibel
 
 ---
@@ -69,7 +68,7 @@ Identifikasi objek di sekitar menggunakan **YOLOv8 + ONNX Runtime**.
 
 ### 🧠 Smart Mode (VQA)
 
-**BARU!** Tanyakan apa saja tentang gambar dengan **Google Gemini 1.5 Flash**.
+Tanyakan apa saja tentang gambar dengan **Google Gemini 1.5 Flash**.
 
 - ✅ Visual Question Answering
 - ✅ Deskripsi detail untuk tunanetra
@@ -458,7 +457,7 @@ docker-compose logs -f backend ai-service
 | **Prometheus**  | 9090  | http://localhost:9090 | Metrics             |
 | **Grafana**     | 3000  | http://localhost:3000 | Dashboard           |
 
-### 5️⃣ (Opsional) Mengaktifkan GPU Support
+### 4️⃣ (Opsional) Mengaktifkan GPU Support
 
 Untuk performa inferensi AI yang lebih cepat (NVIDIA GPU required):
 
@@ -478,7 +477,7 @@ Untuk performa inferensi AI yang lebih cepat (NVIDIA GPU required):
    ```
 3. Rebuild service: `docker-compose up -d --build ai-service`
 
-### 4️⃣ Jalankan Mobile App
+### 5️⃣ Jalankan Mobile App
 
 ```bash
 cd temandifa-frontend
