@@ -124,11 +124,6 @@ func Fatal(msg string, fields ...zap.Field) {
 	Log.Fatal(msg, fields...)
 }
 
-// With creates a child logger with additional fields
-func With(fields ...zap.Field) *zap.Logger {
-	return Log.With(fields...)
-}
-
 // Context key types for extracting values from context
 type contextKey string
 
@@ -167,19 +162,4 @@ func FromContext(ctx interface{ Value(any) any }) *zap.Logger {
 // InfoCtx logs an info message with context fields
 func InfoCtx(ctx interface{ Value(any) any }, msg string, fields ...zap.Field) {
 	FromContext(ctx).Info(msg, fields...)
-}
-
-// DebugCtx logs a debug message with context fields
-func DebugCtx(ctx interface{ Value(any) any }, msg string, fields ...zap.Field) {
-	FromContext(ctx).Debug(msg, fields...)
-}
-
-// WarnCtx logs a warning message with context fields
-func WarnCtx(ctx interface{ Value(any) any }, msg string, fields ...zap.Field) {
-	FromContext(ctx).Warn(msg, fields...)
-}
-
-// ErrorCtx logs an error message with context fields
-func ErrorCtx(ctx interface{ Value(any) any }, msg string, fields ...zap.Field) {
-	FromContext(ctx).Error(msg, fields...)
 }

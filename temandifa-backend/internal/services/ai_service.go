@@ -192,7 +192,7 @@ func (s *aiService) handleError(err error) error {
 	if err == gobreaker.ErrOpenState {
 		return err
 	}
-	
+
 	st, ok := status.FromError(err)
 	if ok {
 		logger.Error("AI Service gRPC failed",
@@ -201,7 +201,7 @@ func (s *aiService) handleError(err error) error {
 		)
 		return fmt.Errorf("AI Service error: %s", st.Message())
 	}
-	
+
 	logger.Error("AI Service call failed", zap.Error(err))
 	return err
 }

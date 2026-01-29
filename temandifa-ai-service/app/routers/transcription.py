@@ -68,10 +68,12 @@ async def transcribe_audio(
         response = await stub.TranscribeAudio(grpc_request)
 
         if not response.success:
-            raise Exception(response.text)
+            raise Exception(f"Transcription failed: {response.text}")
 
         transcription_data = TranscriptionData(
-            text=response.text, language=response.language
+            text=response.text,
+            language=response.language,
+            duration=response.duration,
         )
 
         set_cached(

@@ -76,7 +76,8 @@ func (s *authService) Login(input dto.LoginRequest, userAgent, ipAddress string)
 		return nil, apperrors.ErrInvalidCredentials
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+	cmpErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password))
+	if cmpErr != nil {
 		return nil, apperrors.ErrInvalidCredentials
 	}
 

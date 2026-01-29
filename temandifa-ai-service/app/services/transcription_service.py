@@ -152,4 +152,3 @@ class TranscriptionService:
             "device": settings.resolved_whisper_device,
             "memory_pool_enabled": settings.memory_pool_enabled,
         }
-

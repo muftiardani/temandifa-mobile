@@ -219,4 +219,3 @@ func (ts *tokenService) CleanupExpiredTokens() (int64, error) {
 	}
 	return result.RowsAffected, nil
 }
-

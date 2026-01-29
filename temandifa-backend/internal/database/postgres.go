@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -24,18 +23,6 @@ import (
 var Module = fx.Options(
 	fx.Provide(NewPostgresConnection),
 )
-
-// Deprecated: DB is kept for backward compatibility. Use DI instead.
-var DB *gorm.DB
-
-var dbHealth = &healthStatus{healthy: true}
-
-// healthStatus tracks database health
-type healthStatus struct {
-	mu      sync.RWMutex
-	healthy bool
-	lastErr error
-}
 
 // NewPostgresConnection initializes the PostgreSQL database connection
 // and returns the *gorm.DB instance for dependency injection.
@@ -85,10 +72,6 @@ func NewPostgresConnection(lc fx.Lifecycle, cfg *config.Config) (*gorm.DB, error
 		return nil, err
 	}
 
-	// Deprecated: Assign to global for legacy support during migration
-	// TODO: Remove this once all consumers use DI
-	DB = db
-
 	// Configure connection pool from config
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -116,7 +99,7 @@ func NewPostgresConnection(lc fx.Lifecycle, cfg *config.Config) (*gorm.DB, error
 
 	// Run Database Migrations
 	runMigrations(sqlDB, "migrations")
-	
+
 	// Register Lifecycle hooks
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
@@ -149,95 +132,3 @@ func runMigrations(db *sql.DB, migrationDir string) {
 
 	logger.Info("Database migrations ran successfully")
 }
-
-// CloseDB closes the given database connection
-// Deprecated: Use FX lifecycle hooks instead of manual close
-func CloseDB(db *gorm.DB) error {
-	if db != nil {
-		sqlDB, err := db.DB()
-		if err != nil {
-			return err
-		}
-		return sqlDB.Close()
-	}
-	return nil
-}
-
-// Close is deprecated: kept for backward compatibility
-// Use CloseDB or FX lifecycle hooks instead
-func Close() error {
-	return CloseDB(DB)
-}
-
-// StartHealthChecker starts a background goroutine that periodically checks database health
-// Deprecated: Use StartHealthCheckerWithDB instead
-func StartHealthChecker(interval time.Duration) {
-	StartHealthCheckerWithDB(DB, interval)
-}
-
-// StartHealthCheckerWithDB starts a health checker for the given database connection
-func StartHealthCheckerWithDB(db *gorm.DB, interval time.Duration) {
-	go func() {
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			if db == nil {
-				dbHealth.setUnhealthy(nil)
-				continue
-			}
-
-			sqlDB, err := db.DB()
-			if err != nil {
-				dbHealth.setUnhealthy(err)
-				logger.Error("Database health check failed: cannot get sql.DB", zap.Error(err))
-				continue
-			}
-
-			if err := sqlDB.Ping(); err != nil {
-				dbHealth.setUnhealthy(err)
-				logger.Error("Database health check failed: ping error", zap.Error(err))
-			} else {
-				if !dbHealth.isHealthy() {
-					logger.Info("Database connection recovered")
-				}
-				dbHealth.setHealthy()
-			}
-		}
-	}()
-
-	logger.Info("Database health checker started", zap.Duration("interval", interval))
-}
-
-// IsHealthy returns true if the database is healthy
-func IsHealthy() bool {
-	return dbHealth.isHealthy()
-}
-
-// GetHealthStatus returns the current health status and last error
-func GetHealthStatus() (bool, error) {
-	dbHealth.mu.RLock()
-	defer dbHealth.mu.RUnlock()
-	return dbHealth.healthy, dbHealth.lastErr
-}
-
-func (h *healthStatus) setHealthy() {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.healthy = true
-	h.lastErr = nil
-}
-
-func (h *healthStatus) setUnhealthy(err error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.healthy = false
-	h.lastErr = err
-}
-
-func (h *healthStatus) isHealthy() bool {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return h.healthy
-}
-

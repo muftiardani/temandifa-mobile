@@ -14,8 +14,6 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.exceptions import AIServiceException, ai_service_exception_handler
-from app.core.logging import Logger, setup_logging
-from app.core.metrics import get_metrics_content_type, get_metrics_text
 from app.core.http.middleware import (
     MemoryCleanupMiddleware,
     MemoryMonitorMiddleware,
@@ -23,6 +21,8 @@ from app.core.http.middleware import (
     TimeoutMiddleware,
 )
 from app.core.infrastructure.rate_limiter import limiter
+from app.core.logging import Logger, setup_logging
+from app.core.metrics import get_metrics_content_type, get_metrics_text
 from app.routers import batch, detection, ocr, transcription, vqa
 from app.schemas.common import HealthResponse, ModelStatus
 
@@ -142,12 +142,13 @@ async def health_check():
             # ai_client.channel assignment happens on first use,
             # so we ensure stub is created.
             ai_client.get_stub()  # Test connection
-            # Simple connectivity check
-            # A more robust check would be a Health check RPC
-            is_grpc_responsive = True
+            # Get gRPC channel state for monitoring
+            grpc_state = await ai_client.get_channel_state()
+            is_grpc_responsive = grpc_state in ("READY", "IDLE")
         except Exception as e:
             logger.error(f"Health Check: gRPC unresponsive: {e}")
             is_grpc_responsive = False
+            grpc_state = "ERROR"
 
     status_str = "healthy"
     if not is_process_alive:
@@ -157,14 +158,14 @@ async def health_check():
 
     # We report models as ready if process is alive (simplification for now)
     # Ideally we'd query the worker for model load status via gRPC
-    current_status = {k: is_grpc_responsive for k in models_ready.keys()}
-    loaded_count = 3 if is_grpc_responsive else 0
+    current_status = {k: is_grpc_responsive for k in models_ready}
+    loaded_count = 4 if is_grpc_responsive else 0
 
     return HealthResponse(
         status=status_str,
         models=ModelStatus(**current_status),
         versions=settings.ai_model_versions,
-        ready_count=f"{loaded_count}/3",
+        ready_count=f"{loaded_count}/4",
     )
 
 

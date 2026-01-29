@@ -100,7 +100,6 @@ func main() {
 		// Invocation (Entry Point)
 		fx.Invoke(
 			initInfrastructure,
-			initCachePackages,
 			registerRoutes,
 			services.RegisterTokenCleanupJob, // Token cleanup background job
 			startServer,
@@ -113,13 +112,6 @@ func initInfrastructure() {
 	// Initialize structured logger
 	logger.InitFromEnv()
 	// defer logger.Sync() // Fx handles graceful shutdown
-}
-
-// initCachePackages initializes cache-related packages with the Redis client
-func initCachePackages(rdb *redis.Client) {
-	cache.InitCache(rdb)
-	cache.InitUserCache(rdb)
-	services.InitDefaultBlacklist(rdb)
 }
 
 func NewHTTPServer(cfg *config.Config) *gin.Engine {
@@ -147,6 +139,7 @@ func registerRoutes(
 	rdb *redis.Client,
 	userRepo repositories.UserRepository,
 	userCache services.UserCacheService,
+	tokenBlacklist *services.TokenBlacklist,
 	health *handlers.HealthHandler,
 	auth *handlers.AuthHandler,
 	ai *handlers.AIProxyHandler,
@@ -166,7 +159,7 @@ func registerRoutes(
 	}
 
 	protected := api.Group("/")
-	protected.Use(middleware.Auth(cfg.JWTSecret, userRepo, userCache))
+	protected.Use(middleware.Auth(cfg.JWTSecret, userRepo, userCache, tokenBlacklist))
 	{
 		// AI Routes with stricter rate limiting and per-operation timeouts
 		aiRoutes := protected.Group("/")
@@ -220,8 +213,6 @@ func startServer(lc fx.Lifecycle, r *gin.Engine, cfg *config.Config) {
 				zap.String("port", cfg.Port),
 				zap.String("mode", gin.Mode()),
 			)
-			// Start periodic health checker for database (every 30 seconds)
-			database.StartHealthChecker(30 * time.Second)
 
 			go func() {
 				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -243,11 +234,6 @@ func startServer(lc fx.Lifecycle, r *gin.Engine, cfg *config.Config) {
 			// Shutdown HTTP server
 			if err := srv.Shutdown(shutdownCtx); err != nil {
 				logger.Error("Server forced to shutdown", zap.Error(err))
-			}
-
-			// Close database connections
-			if err := database.Close(); err != nil {
-				logger.Error("Error closing database connection", zap.Error(err))
 			}
 
 			logger.Info("Server exited gracefully")

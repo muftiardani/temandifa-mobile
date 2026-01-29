@@ -129,19 +129,6 @@ def set_cached(key: str, value: dict, ttl: int) -> bool:
         return False
 
 
-def delete_cached(key: str) -> bool:
-    """Delete a cached key."""
-    client = get_redis_client()
-    if not client:
-        return False
-
-    try:
-        client.delete(key)
-        return True
-    except Exception:
-        return False
-
-
 def clear_cache_by_prefix(prefix: str) -> int:
     """
     Clear all keys with given prefix.

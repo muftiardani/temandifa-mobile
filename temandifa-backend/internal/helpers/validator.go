@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"unicode"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -25,13 +24,14 @@ func FormatValidationError(err error) []string {
 		for _, e := range validationErrors {
 			errors = append(errors, formatFieldError(e))
 		}
+		return errors
+	}
+
+	// If it's a JSON marshaling error or other type
+	if strings.Contains(err.Error(), "json") {
+		errors = append(errors, "invalid JSON format")
 	} else {
-		// If it's a JSON marshalling error or other type
-		if strings.Contains(err.Error(), "json") {
-			errors = append(errors, "Invalid JSON format")
-		} else {
-			errors = append(errors, err.Error())
-		}
+		errors = append(errors, err.Error())
 	}
 
 	return errors
@@ -40,7 +40,7 @@ func FormatValidationError(err error) []string {
 // formatFieldError creates a user-friendly error message for a single field
 func formatFieldError(e validator.FieldError) string {
 	field := e.Field()
-	
+
 	switch e.Tag() {
 	case "required":
 		return fmt.Sprintf("%s is required", field)
@@ -96,56 +96,4 @@ func ValidatePasswordStrength(password string) []string {
 	}
 
 	return issues
-}
-
-// SanitizeString removes potentially dangerous characters from input
-func SanitizeString(input string) string {
-	// Trim whitespace
-	sanitized := strings.TrimSpace(input)
-	
-	// Remove null bytes
-	sanitized = strings.ReplaceAll(sanitized, "\x00", "")
-	
-	return sanitized
-}
-
-// SanitizeEmail normalizes an email address
-func SanitizeEmail(email string) string {
-	return strings.ToLower(strings.TrimSpace(email))
-}
-
-// IsValidEmail provides a more thorough email validation
-func IsValidEmail(email string) bool {
-	// Basic check - must contain @ and have parts before and after
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		return false
-	}
-	
-	local, domain := parts[0], parts[1]
-	
-	// Local part checks
-	if len(local) == 0 || len(local) > 64 {
-		return false
-	}
-	
-	// Domain checks
-	if len(domain) == 0 || len(domain) > 255 {
-		return false
-	}
-	if !strings.Contains(domain, ".") {
-		return false
-	}
-	
-	return true
-}
-
-// ContainsOnlyPrintable checks if string contains only printable characters
-func ContainsOnlyPrintable(s string) bool {
-	for _, r := range s {
-		if !unicode.IsPrint(r) {
-			return false
-		}
-	}
-	return true
 }

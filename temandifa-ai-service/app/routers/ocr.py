@@ -19,7 +19,8 @@ from app.core.infrastructure.grpc_client import ai_client
 from app.core.infrastructure.rate_limiter import limiter
 from app.core.metrics import track_request
 from app.grpc_generated import ai_service_pb2
-from app.schemas.ocr import OCRBoundingBox, OCRData, OCRLine, OCRResponse
+from app.routers.helpers import create_ocr_data
+from app.schemas.ocr import OCRData, OCRResponse
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
@@ -72,35 +73,8 @@ async def extract_text(
         if not response.success:
             raise Exception(response.message)
 
-        lines = []
-        for line in response.lines:
-            bbox_flat = list(line.bbox)
-            if len(bbox_flat) >= 8:
-                bbox_obj = OCRBoundingBox(
-                    top_left=[bbox_flat[0], bbox_flat[1]],
-                    top_right=[bbox_flat[2], bbox_flat[3]],
-                    bottom_right=[bbox_flat[4], bbox_flat[5]],
-                    bottom_left=[bbox_flat[6], bbox_flat[7]],
-                )
-            else:
-                bbox_obj = OCRBoundingBox(
-                    top_left=[0, 0],
-                    top_right=[0, 0],
-                    bottom_right=[0, 0],
-                    bottom_left=[0, 0],
-                )
-
-            lines.append(
-                OCRLine(text=line.text, confidence=line.confidence, bbox=bbox_obj)
-            )
-
-        ocr_data = OCRData(
-            full_text=response.full_text,
-            word_count=len(response.full_text.split()) if response.full_text else 0,
-            line_count=len(lines),
-            language=language,
-            lines=lines,
-        )
+        # Use helper to create OCRData
+        ocr_data = create_ocr_data(response, language)
 
         set_cached(cache_key, ocr_data.model_dump(), settings.cache_ttl_ocr)
 

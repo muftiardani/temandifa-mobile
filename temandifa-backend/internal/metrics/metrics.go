@@ -106,18 +106,3 @@ func RecordAIRequest(service string, durationSeconds float64, status string, cac
 func UpdateCircuitBreakerState(name string, state int) {
 	CircuitBreakerState.WithLabelValues(name).Set(float64(state))
 }
-
-// RecordAuthAttempt records an authentication attempt
-func RecordAuthAttempt(result string) {
-	AuthAttempts.WithLabelValues(result).Inc()
-}
-
-// RecordCircuitBreakerRequest records a request through the circuit breaker
-func RecordCircuitBreakerRequest(name, state, result string) {
-	CircuitBreakerRequests.WithLabelValues(name, state, result).Inc()
-}
-
-// UpdateCircuitBreakerFailureRatio updates the failure ratio metric
-func UpdateCircuitBreakerFailureRatio(name string, ratio float64) {
-	CircuitBreakerFailureRatio.WithLabelValues(name).Set(ratio)
-}

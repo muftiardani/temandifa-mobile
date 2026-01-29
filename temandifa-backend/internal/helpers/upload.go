@@ -16,8 +16,8 @@ import (
 
 // File size limits (in bytes)
 const (
-	MaxImageSize = 10 * 1024 * 1024  // 10MB
-	MaxAudioSize = 25 * 1024 * 1024  // 25MB
+	MaxImageSize = 10 * 1024 * 1024 // 10MB
+	MaxAudioSize = 25 * 1024 * 1024 // 25MB
 )
 
 // Allowed MIME types

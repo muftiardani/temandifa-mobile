@@ -189,11 +189,6 @@ def cleanup_temp_files():
         logger.info(f"Cleaned up {cleaned} temporary files")
 
 
-def get_model_status() -> dict:
-    """Get current model status for health checks."""
-    return model_status.copy()
-
-
 async def serve():
     """Start Async gRPC Server with graceful shutdown support."""
     global _server, model_status
@@ -255,10 +250,11 @@ async def serve():
     await _server.start()
 
     # Wait for shutdown signal or termination
-    try:
+    import contextlib
+
+    with contextlib.suppress(asyncio.CancelledError):
         await _shutdown_event.wait()
-    except asyncio.CancelledError:
-        pass
+
 
     logger.info("Graceful shutdown initiated...")
 

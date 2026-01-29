@@ -37,7 +37,7 @@ async def ask_question(
 ):
     """
     Ask a question about an image using Visual Question Answering (VQA).
-    
+
     Uses Google Gemini 1.5 Flash for intelligent image understanding.
     """
     # Validate and read file

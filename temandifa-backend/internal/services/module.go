@@ -11,6 +11,7 @@ var Module = fx.Options(
 		NewTokenService,
 		NewCacheService,
 		NewUserCacheService,
+		NewTokenBlacklist,
 	),
 	// Bind interfaces
 	fx.Provide(func(s *authService) AuthService { return s }),
@@ -20,4 +21,3 @@ var Module = fx.Options(
 	fx.Provide(func(s *redisCacheService) CacheService { return s }),
 	fx.Provide(func(s *userCacheService) UserCacheService { return s }),
 )
-

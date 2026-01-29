@@ -145,16 +145,18 @@ class OCRService:
                 text = line[1][0]
                 confidence = float(line[1][1])
 
-                extracted_texts.append({
-                    "text": text,
-                    "confidence": round(confidence, 4),
-                    "bbox": {
-                        "top_left": box[0],
-                        "top_right": box[1],
-                        "bottom_right": box[2],
-                        "bottom_left": box[3],
-                    },
-                })
+                extracted_texts.append(
+                    {
+                        "text": text,
+                        "confidence": round(confidence, 4),
+                        "bbox": {
+                            "top_left": box[0],
+                            "top_right": box[1],
+                            "bottom_right": box[2],
+                            "bottom_left": box[3],
+                        },
+                    }
+                )
 
         full_text = " ".join([item["text"] for item in extracted_texts])
         word_count = len(full_text.split()) if full_text else 0
@@ -185,4 +187,3 @@ class OCRService:
             "memory_pool_enabled": settings.memory_pool_enabled,
             "use_gpu": settings.use_gpu,
         }
-

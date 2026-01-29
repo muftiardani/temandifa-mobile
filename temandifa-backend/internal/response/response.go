@@ -79,7 +79,7 @@ func getRequestID(c *gin.Context) string {
 // Internal helper for fast JSON rendering
 func renderJSON(c *gin.Context, status int, data any) {
 	c.Header("Content-Type", "application/json; charset=utf-8")
-	
+
 	// Use goccy/go-json for performance
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
@@ -87,7 +87,7 @@ func renderJSON(c *gin.Context, status int, data any) {
 		c.JSON(status, data)
 		return
 	}
-	
+
 	c.Data(status, "application/json; charset=utf-8", jsonBytes)
 }
 
@@ -148,11 +148,6 @@ func Created(c *gin.Context, data any, message string) {
 	renderJSON(c, http.StatusCreated, response)
 }
 
-// NoContent sends a 204 response
-func NoContent(c *gin.Context) {
-	c.Status(http.StatusNoContent)
-}
-
 // --- Convenience error functions ---
 
 // BadRequest sends a 400 error
@@ -175,22 +170,7 @@ func NotFound(c *gin.Context, resource string) {
 	Error(c, http.StatusNotFound, ErrCodeNotFound, resource+" not found")
 }
 
-// Conflict sends a 409 error
-func Conflict(c *gin.Context, message string) {
-	Error(c, http.StatusConflict, ErrCodeAlreadyExists, message)
-}
-
-// TooManyRequests sends a 429 error
-func TooManyRequests(c *gin.Context, message string) {
-	Error(c, http.StatusTooManyRequests, ErrCodeRateLimited, message)
-}
-
 // InternalError sends a 500 error
 func InternalError(c *gin.Context, message string) {
 	Error(c, http.StatusInternalServerError, ErrCodeInternal, message)
-}
-
-// ServiceUnavailable sends a 503 error
-func ServiceUnavailable(c *gin.Context, service string) {
-	Error(c, http.StatusServiceUnavailable, ErrCodeServiceUnavailable, service+" is temporarily unavailable")
 }

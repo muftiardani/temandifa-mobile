@@ -17,15 +17,17 @@ import (
 )
 
 type AuthHandler struct {
-	AuthService  services.AuthService
-	TokenService services.TokenService
+	AuthService    services.AuthService
+	TokenService   services.TokenService
+	TokenBlacklist *services.TokenBlacklist
 }
 
 // NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(authService services.AuthService, tokenService services.TokenService) *AuthHandler {
+func NewAuthHandler(authService services.AuthService, tokenService services.TokenService, tokenBlacklist *services.TokenBlacklist) *AuthHandler {
 	return &AuthHandler{
-		AuthService:  authService,
-		TokenService: tokenService,
+		AuthService:    authService,
+		TokenService:   tokenService,
+		TokenBlacklist: tokenBlacklist,
 	}
 }
 
@@ -151,13 +153,13 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	// Get user info (TokenService already validated token)
 	userID, _ := h.TokenService.ValidateAccessToken(tokenPair.AccessToken)
-	
+
 	logger.Debug("Token refreshed",
 		zap.Uint("user_id", userID),
 	)
-	
+
 	// Construct response
-	
+
 	response.Success(c, gin.H{
 		"access_token":  tokenPair.AccessToken,
 		"refresh_token": tokenPair.RefreshToken,
@@ -194,8 +196,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 		accessToken := authHeader[7:]
-		if err := services.BlacklistToken(c, accessToken, time.Hour); err != nil {
-			logger.Warn("Failed to blacklist access token", zap.Error(err))
+		if h.TokenBlacklist != nil {
+			if err := h.TokenBlacklist.Add(c, accessToken, time.Hour); err != nil {
+				logger.Warn("Failed to blacklist access token", zap.Error(err))
+			}
 		}
 	}
 

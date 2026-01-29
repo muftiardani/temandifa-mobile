@@ -26,16 +26,6 @@ func NewTokenBlacklist(client *redis.Client) *TokenBlacklist {
 	}
 }
 
-// Deprecated: DefaultBlacklist is kept for backward compatibility.
-// Use *TokenBlacklist via dependency injection instead.
-var DefaultBlacklist *TokenBlacklist
-
-// Deprecated: InitDefaultBlacklist is kept for backward compatibility.
-// Use NewTokenBlacklist with FX dependency injection instead.
-func InitDefaultBlacklist(client *redis.Client) {
-	DefaultBlacklist = NewTokenBlacklist(client)
-}
-
 // Add adds a token to the blacklist with TTL matching remaining expiry
 func (tb *TokenBlacklist) Add(ctx context.Context, token string, expiry time.Duration) error {
 	if tb.client == nil {
@@ -93,39 +83,4 @@ func (tb *TokenBlacklist) Remove(ctx context.Context, token string) error {
 	key := tb.prefix + hex.EncodeToString(hash[:])
 
 	return tb.client.Del(ctx, key).Err()
-}
-
-// Stats returns blacklist statistics
-func (tb *TokenBlacklist) Stats(ctx context.Context) map[string]interface{} {
-	stats := map[string]interface{}{
-		"enabled": tb.client != nil,
-	}
-
-	if tb.client == nil {
-		return stats
-	}
-
-	// Count blacklisted tokens
-	keys, err := tb.client.Keys(ctx, tb.prefix+"*").Result()
-	if err == nil {
-		stats["count"] = len(keys)
-	}
-
-	return stats
-}
-
-// Deprecated: Use *TokenBlacklist.Add() with dependency injection instead.
-func BlacklistToken(ctx context.Context, token string, expiry time.Duration) error {
-	if DefaultBlacklist == nil {
-		return nil
-	}
-	return DefaultBlacklist.Add(ctx, token, expiry)
-}
-
-// Deprecated: Use *TokenBlacklist.IsBlacklisted() with dependency injection instead.
-func IsTokenBlacklisted(ctx context.Context, token string) bool {
-	if DefaultBlacklist == nil {
-		return false
-	}
-	return DefaultBlacklist.IsBlacklisted(ctx, token)
 }

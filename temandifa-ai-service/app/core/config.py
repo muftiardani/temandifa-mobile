@@ -81,6 +81,11 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     enable_vqa: bool = True
 
+    # gRPC Performance Settings
+    grpc_keepalive_time_ms: int = 30000  # 30 seconds
+    grpc_keepalive_timeout_ms: int = 10000  # 10 seconds
+    grpc_max_message_size: int = 50 * 1024 * 1024  # 50MB
+
     ai_model_versions: dict = {
         "yolo": "yolov8n-8.1.0",
         "ocr": "paddleocr-2.7.0.3",

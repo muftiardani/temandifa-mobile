@@ -1,15 +1,6 @@
 from pydantic import BaseModel, Field
 
 
-class BoundingBox(BaseModel):
-    """Bounding box coordinates [x1, y1, x2, y2]."""
-
-    x1: float
-    y1: float
-    x2: float
-    y2: float
-
-
 class Detection(BaseModel):
     """Single object detection result."""
 
@@ -19,12 +10,18 @@ class Detection(BaseModel):
     bbox: list[float] = Field(..., description="Bounding box [x1, y1, x2, y2]")
 
 
+class DetectionData(BaseModel):
+    """Detection result data wrapper for consistency with other schemas."""
+
+    language: str = Field("en", description="Language for labels")
+    count: int = Field(..., description="Number of detected objects")
+    detections: list[Detection] = Field(..., description="List of detected objects")
+
+
 class DetectionResponse(BaseModel):
     """Response for /detect endpoint."""
 
     status: str = "success"
     filename: str
-    language: str
-    count: int
-    data: list[Detection]
+    data: DetectionData
     is_fallback: bool = False

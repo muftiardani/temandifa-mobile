@@ -93,26 +93,3 @@ func RequestLogger() gin.HandlerFunc {
 		}
 	}
 }
-
-// RequestLoggerMinimal logs only essential request info (for production)
-func RequestLoggerMinimal() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		start := time.Now()
-		path := c.Request.URL.Path
-
-		c.Next()
-
-		// Only log slow requests or errors
-		latency := time.Since(start)
-		status := c.Writer.Status()
-
-		if status >= 400 || latency > 500*time.Millisecond {
-			logger.Info("Request",
-				zap.String("method", c.Request.Method),
-				zap.String("path", path),
-				zap.Int("status", status),
-				zap.Duration("latency", latency),
-			)
-		}
-	}
-}

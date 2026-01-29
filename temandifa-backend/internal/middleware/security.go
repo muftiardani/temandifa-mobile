@@ -13,19 +13,19 @@ func SecurityHeaders() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Prevent MIME type sniffing
 		c.Header("X-Content-Type-Options", "nosniff")
-		
+
 		// Prevent clickjacking
 		c.Header("X-Frame-Options", "DENY")
-		
+
 		// XSS Protection
 		c.Header("X-XSS-Protection", "1; mode=block")
-		
+
 		// Referrer policy
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// Content Security Policy (basic)
 		c.Header("Content-Security-Policy", "default-src 'self'")
-		
+
 		// Permissions Policy
 		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
@@ -51,39 +51,6 @@ func MaxBodySize(maxBytes int64) gin.HandlerFunc {
 
 		// Also limit the reader to prevent slow loris attacks
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
-		
-		c.Next()
-	}
-}
-
-// CORS with configurable origins
-func CORSCustom(allowedOrigins []string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-		
-		// Check if origin is allowed
-		allowed := false
-		for _, o := range allowedOrigins {
-			if o == "*" || o == origin {
-				allowed = true
-				break
-			}
-		}
-		
-		if allowed && origin != "" {
-			c.Header("Access-Control-Allow-Origin", origin)
-		}
-		
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token, X-Request-ID")
-		c.Header("Access-Control-Expose-Headers", "X-Request-ID")
-		c.Header("Access-Control-Max-Age", "86400")
-		c.Header("Access-Control-Allow-Credentials", "true")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
 
 		c.Next()
 	}

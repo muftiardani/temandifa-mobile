@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"math"
 	"math/rand"
 	"time"
 
@@ -78,15 +77,6 @@ func WithRetry(ctx context.Context, config RetryConfig, operation string, fn Ret
 	)
 
 	return lastErr
-}
-
-// CalculateBackoff calculates the backoff duration for a given attempt
-func CalculateBackoff(attempt int, initial, max time.Duration, multiplier float64) time.Duration {
-	backoff := time.Duration(float64(initial) * math.Pow(multiplier, float64(attempt)))
-	if backoff > max {
-		return max
-	}
-	return backoff
 }
 
 // addJitter adds random jitter to a duration to prevent thundering herd

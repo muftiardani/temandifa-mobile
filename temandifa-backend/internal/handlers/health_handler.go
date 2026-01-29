@@ -33,7 +33,7 @@ func NewHealthHandler(db *gorm.DB, redis *redis.Client, aiServiceURL string) *He
 	}
 }
 
-// CheckHealth godoc
+// CheckHealth handles health check requests
 //
 //	@Summary		Health Check
 //	@Description	Get comprehensive health status of all services with latency info
@@ -126,7 +126,9 @@ func (h *HealthHandler) CheckHealth(c *gin.Context) {
 			response.Status = "degraded"
 		}
 	} else {
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		if resp.StatusCode == http.StatusOK {
 			response.Checks["ai_service"] = dto.HealthCheck{
 				Status:    "healthy",

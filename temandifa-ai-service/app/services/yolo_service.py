@@ -35,38 +35,103 @@ class YoloService:
         self.input_name = None
         self.output_names = None
         self.batcher = None
-        
+
         # COCO Classes (80)
         self.names = [
-            "person", "bicycle", "car", "motorcycle", "airplane",
-            "bus", "train", "truck", "boat", "traffic light",
-            "fire hydrant", "stop sign", "parking meter", "bench", "bird",
-            "cat", "dog", "horse", "sheep", "cow",
-            "elephant", "bear", "zebra", "giraffe", "backpack",
-            "umbrella", "handbag", "tie", "suitcase", "frisbee",
-            "skis", "snowboard", "sports ball", "kite", "baseball bat",
-            "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle",
-            "wine glass", "cup", "fork", "knife", "spoon",
-            "bowl", "banana", "apple", "sandwich", "orange",
-            "broccoli", "carrot", "hot dog", "pizza", "donut",
-            "cake", "chair", "couch", "potted plant", "bed",
-            "dining table", "toilet", "tv", "laptop", "mouse",
-            "remote", "keyboard", "cell phone", "microwave", "oven",
-            "toaster", "sink", "refrigerator", "book", "clock",
-            "vase", "scissors", "teddy bear", "hair drier", "toothbrush",
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush",
         ]
 
     def load(self):
         """Explicitly load the model."""
         if self.session is None:
             self._load_model()
-        
+
         # Initialize batcher after model is loaded
         if settings.enable_batching and self.batcher is None:
             self._init_batcher()
 
     def _init_batcher(self):
         """Initialize dynamic batcher for GPU batch inference."""
+
         async def batch_process(images: list[bytes]) -> list[list[dict]]:
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(
@@ -74,7 +139,7 @@ class YoloService:
                 self._batch_detect,
                 images,
             )
-        
+
         self.batcher = DynamicBatcher(
             process_fn=batch_process,
             max_batch_size=settings.batch_max_size,
@@ -172,7 +237,7 @@ class YoloService:
                 raise RuntimeError("YOLOv8 model not loaded")
 
         batch_size = len(images_bytes)
-        
+
         # Preprocess all images
         preprocessed = [self._preprocess_single(img) for img in images_bytes]
         imgs = np.stack([p[0] for p in preprocessed], axis=0)  # [N, 3, 640, 640]
@@ -255,11 +320,13 @@ class YoloService:
 
             label = self.names[cls_id] if cls_id < len(self.names) else str(cls_id)
 
-            final_detections.append({
-                "label": label,
-                "confidence": round(float(score), 4),
-                "bbox": [round(float(b), 2) for b in box],
-            })
+            final_detections.append(
+                {
+                    "label": label,
+                    "confidence": round(float(score), 4),
+                    "bbox": [round(float(b), 2) for b in box],
+                }
+            )
 
         return final_detections
 
@@ -286,7 +353,7 @@ class YoloService:
 
         detections = self._postprocess(prediction, img0, ratio, dw, dh)
         logger.debug("Detection completed (ONNX)", count=len(detections))
-        
+
         return detections
 
     @track_inference("yolo")
@@ -298,7 +365,7 @@ class YoloService:
         # Use batcher if enabled and available
         if settings.enable_batching and self.batcher is not None:
             return await self.batcher.add(image_bytes)
-        
+
         # Fallback to single image processing
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
@@ -314,4 +381,3 @@ class YoloService:
             "quantization_enabled": settings.enable_quantization,
             "memory_pool_enabled": settings.memory_pool_enabled,
         }
-

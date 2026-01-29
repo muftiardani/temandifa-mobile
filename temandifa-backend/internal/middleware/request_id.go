@@ -11,10 +11,6 @@ import (
 	"temandifa-backend/internal/logger"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // RequestID adds a unique request ID to each request for tracing
 // The ID is added to the context and response headers
 func RequestID() gin.HandlerFunc {
@@ -54,12 +50,4 @@ func RequestID() gin.HandlerFunc {
 // generateRequestID creates a unique ID using timestamp and random suffix
 func generateRequestID() string {
 	return fmt.Sprintf("%d-%04x", time.Now().UnixNano(), rand.Intn(0xFFFF))
-}
-
-// GetRequestID retrieves the request ID from context
-func GetRequestID(c *gin.Context) string {
-	if requestID, exists := c.Get("request_id"); exists {
-		return requestID.(string)
-	}
-	return ""
 }

@@ -19,7 +19,8 @@ from app.core.infrastructure.grpc_client import ai_client
 from app.core.infrastructure.rate_limiter import limiter
 from app.core.metrics import track_request
 from app.grpc_generated import ai_service_pb2
-from app.schemas.detection import Detection, DetectionResponse
+from app.routers.helpers import create_detection_data, parse_detection_objects
+from app.schemas.detection import DetectionResponse
 from app.utils.translations import translate_detections
 
 router = APIRouter(prefix="/detect", tags=["Object Detection"])
@@ -51,12 +52,9 @@ async def detect_objects(
         if language and language != "en":
             detections = translate_detections(detections, language)
 
-        detection_models = [Detection(**d) for d in detections]
         return DetectionResponse(
             filename=file.filename or "unknown",
-            language=language,
-            count=len(detection_models),
-            data=detection_models,
+            data=create_detection_data(detections, language or "en"),
         )
 
     # Check if service is unavailable and should use fallback
@@ -81,33 +79,20 @@ async def detect_objects(
         if not response.success:
             raise Exception(response.message)
 
-        detections = []
-        for obj in response.objects:
-            detections.append(
-                {
-                    "label": obj.label,
-                    "confidence": round(obj.confidence, 4),
-                    "bbox": list(obj.bbox),
-                }
-            )
+        # Use helper to parse detection objects
+        detections = parse_detection_objects(response.objects)
 
-        set_cached(
-            cache_key, {"detections": detections}, settings.cache_ttl_detection
-        )
+        set_cached(cache_key, {"detections": detections}, settings.cache_ttl_detection)
 
         if language and language != "en":
             detections = translate_detections(detections, language)
-
-        detection_models = [Detection(**d) for d in detections]
 
         # Record success
         degradation.record_success("detection")
 
         return DetectionResponse(
             filename=file.filename or "unknown",
-            language=language,
-            count=len(detection_models),
-            data=detection_models,
+            data=create_detection_data(detections, language or "en"),
         )
 
     except Exception as e:

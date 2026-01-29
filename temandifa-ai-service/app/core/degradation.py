@@ -8,7 +8,13 @@ Tracks service health and returns appropriate fallback responses.
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from app.schemas.detection import DetectionResponse
+    from app.schemas.ocr import OCRResponse
+    from app.schemas.transcription import TranscriptionResponse
+    from app.schemas.vqa import VQAResponse
 
 from app.core.logging import logger
 
@@ -132,9 +138,7 @@ class GracefulDegradation:
 
     def get_all_status(self) -> dict:
         """Get status for all services."""
-        return {
-            name: health.get_stats() for name, health in self._services.items()
-        }
+        return {name: health.get_stats() for name, health in self._services.items()}
 
 
 # Singleton instance
@@ -142,60 +146,66 @@ degradation = GracefulDegradation()
 
 
 # Fallback responses for each service
-def get_detection_fallback(filename: str) -> dict:
+def get_detection_fallback(filename: str) -> "DetectionResponse":
     """Return fallback response for object detection."""
-    return {
-        "status": "degraded",
-        "filename": filename,
-        "language": "en",
-        "count": 0,
-        "data": [],
-        "message": "Detection service temporarily unavailable. Please retry.",
-        "is_fallback": True,
-    }
+    from app.schemas.detection import DetectionData, DetectionResponse
+
+    return DetectionResponse(
+        status="degraded",
+        filename=filename,
+        data=DetectionData(
+            language="en",
+            count=0,
+            detections=[],
+        ),
+        is_fallback=True,
+    )
 
 
-def get_ocr_fallback(filename: str) -> dict:
+def get_ocr_fallback(filename: str) -> "OCRResponse":
     """Return fallback response for OCR."""
-    return {
-        "status": "degraded",
-        "filename": filename,
-        "data": {
-            "full_text": "",
-            "word_count": 0,
-            "line_count": 0,
-            "language": "en",
-            "lines": [],
-        },
-        "message": "OCR service temporarily unavailable. Please retry.",
-        "is_fallback": True,
-    }
+    from app.schemas.ocr import OCRData, OCRResponse
+
+    return OCRResponse(
+        status="degraded",
+        filename=filename,
+        data=OCRData(
+            full_text="",
+            word_count=0,
+            line_count=0,
+            language="en",
+            lines=[],
+        ),
+        is_fallback=True,
+    )
 
 
-def get_transcription_fallback(filename: str) -> dict:
+def get_transcription_fallback(filename: str) -> "TranscriptionResponse":
     """Return fallback response for transcription."""
-    return {
-        "status": "degraded",
-        "filename": filename,
-        "data": {
-            "text": "",
-            "language": "unknown",
-            "duration": 0,
-        },
-        "message": "Transcription service temporarily unavailable. Please retry.",
-        "is_fallback": True,
-    }
+    from app.schemas.transcription import TranscriptionData, TranscriptionResponse
+
+    return TranscriptionResponse(
+        status="degraded",
+        filename=filename,
+        data=TranscriptionData(
+            text="",
+            language="unknown",
+            duration=0.0,
+        ),
+        is_fallback=True,
+    )
 
 
-def get_vqa_fallback(filename: str, question: str) -> dict:
+def get_vqa_fallback(filename: str, question: str) -> "VQAResponse":
     """Return fallback response for VQA."""
-    return {
-        "status": "degraded",
-        "filename": filename,
-        "data": {
-            "question": question,
-            "answer": "I'm sorry, I cannot process your question at this time.",
-        },
-        "message": "VQA service temporarily unavailable. Please retry.",
-        "is_fallback": True,
-    }
+    from app.schemas.vqa import VQAData, VQAResponse
+
+    return VQAResponse(
+        status="degraded",
+        filename=filename,
+        data=VQAData(
+            question=question,
+            answer="I'm sorry, I cannot process your question at this time.",
+        ),
+        is_fallback=True,
+    )

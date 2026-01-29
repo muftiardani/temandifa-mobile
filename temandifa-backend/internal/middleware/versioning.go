@@ -6,8 +6,8 @@ import (
 
 // API Version constants
 const (
-	APIVersionV1 = "v1"
-	APIVersionV2 = "v2"
+	APIVersionV1      = "v1"
+	APIVersionV2      = "v2"
 	DefaultAPIVersion = APIVersionV1
 )
 
@@ -28,25 +28,12 @@ func VersionMiddleware() gin.HandlerFunc {
 
 		// Store version in context
 		c.Set(VersionKey, version)
-		
+
 		// Set response header to indicate the API version used
 		c.Header("X-API-Version", version)
 
 		c.Next()
 	}
-}
-
-// GetAPIVersion extracts the API version from the gin context
-func GetAPIVersion(c *gin.Context) string {
-	if version, exists := c.Get(VersionKey); exists {
-		return version.(string)
-	}
-	return DefaultAPIVersion
-}
-
-// IsVersion checks if the current request is for a specific API version
-func IsVersion(c *gin.Context, version string) bool {
-	return GetAPIVersion(c) == version
 }
 
 // normalizeVersion ensures version string is in expected format
@@ -58,28 +45,5 @@ func normalizeVersion(version string) string {
 		return APIVersionV2
 	default:
 		return DefaultAPIVersion
-	}
-}
-
-// RequireVersion creates middleware that only allows specific API versions
-func RequireVersion(allowedVersions ...string) gin.HandlerFunc {
-	versionSet := make(map[string]bool)
-	for _, v := range allowedVersions {
-		versionSet[v] = true
-	}
-
-	return func(c *gin.Context) {
-		currentVersion := GetAPIVersion(c)
-		if !versionSet[currentVersion] {
-			c.AbortWithStatusJSON(400, gin.H{
-				"success": false,
-				"error": gin.H{
-					"code":    "UNSUPPORTED_VERSION",
-					"message": "This endpoint does not support API version " + currentVersion,
-				},
-			})
-			return
-		}
-		c.Next()
 	}
 }

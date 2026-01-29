@@ -98,24 +98,9 @@ var (
 
 // Helper functions for common error creation
 
-// Validation creates a validation error
-func Validation(message string) *AppError {
-	return NewAppError(ErrCodeValidation, message, http.StatusBadRequest)
-}
-
 // ValidationWithDetails creates a validation error with details
 func ValidationWithDetails(message string, details any) *AppError {
 	return NewAppError(ErrCodeValidation, message, http.StatusBadRequest).WithDetails(details)
-}
-
-// NotFound creates a not found error
-func NotFound(resource string) *AppError {
-	return NewAppError(ErrCodeNotFound, fmt.Sprintf("%s not found", resource), http.StatusNotFound)
-}
-
-// Conflict creates a conflict error
-func Conflict(message string) *AppError {
-	return NewAppError(ErrCodeConflict, message, http.StatusConflict)
 }
 
 // AlreadyExists creates an already exists error
@@ -131,12 +116,6 @@ func Internal(err error) *AppError {
 // Database creates a database error wrapping the original error
 func Database(err error) *AppError {
 	return ErrDatabase.Wrap(err)
-}
-
-// IsAppError checks if an error is an AppError
-func IsAppError(err error) bool {
-	var appErr *AppError
-	return errors.As(err, &appErr)
 }
 
 // AsAppError attempts to convert an error to AppError
@@ -159,4 +138,3 @@ func RespondError(c *gin.Context, err *AppError) {
 		},
 	})
 }
-

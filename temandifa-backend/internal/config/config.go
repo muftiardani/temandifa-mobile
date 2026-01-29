@@ -78,8 +78,8 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "5m")
 
 	// AI Rate Limiting (stricter for resource-intensive endpoints)
-	viper.SetDefault("AI_RATE_LIMIT_REQUESTS", 10)  // 10 requests per window
-	viper.SetDefault("AI_RATE_LIMIT_WINDOW", 60)     // 60 seconds
+	viper.SetDefault("AI_RATE_LIMIT_REQUESTS", 10) // 10 requests per window
+	viper.SetDefault("AI_RATE_LIMIT_WINDOW", 60)   // 60 seconds
 
 	// AI Operation Timeouts (per operation type)
 	viper.SetDefault("AI_DETECT_TIMEOUT", "30s")
@@ -90,7 +90,7 @@ func LoadConfig() (*Config, error) {
 	// 2. Load from .env file directly if exists
 	viper.SetConfigFile(".env")
 	viper.SetConfigType("env")
-	
+
 	// Try to read config file, ignore if not found (will rely on env vars)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -98,7 +98,7 @@ func LoadConfig() (*Config, error) {
 		}
 	} else {
 		logger.Info("Configuration loaded from .env file")
-		
+
 		// Enable config hot reload
 		viper.WatchConfig()
 		viper.OnConfigChange(func(e fsnotify.Event) {

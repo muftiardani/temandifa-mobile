@@ -5,25 +5,24 @@ Provides reusable memory buffers to reduce allocation overhead.
 
 import io
 import threading
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from app.core import logger
-from app.core.config import settings
 
 
 class MemoryPool:
     """
     Pool of reusable BytesIO buffers for efficient large file processing.
-    
+
     Benefits:
     - Reduces memory allocation overhead
     - Prevents memory fragmentation
     - Improves GC performance
-    
+
     Usage:
         pool = MemoryPool(buffer_size=10*1024*1024, pool_size=4)
-        
+
         with pool.acquire() as buffer:
             buffer.write(large_data)
             # Process buffer
@@ -38,7 +37,7 @@ class MemoryPool:
     ):
         """
         Initialize memory pool.
-        
+
         Args:
             buffer_size: Initial size hint for each buffer
             pool_size: Number of buffers to maintain in pool
@@ -47,12 +46,12 @@ class MemoryPool:
         self.buffer_size = buffer_size
         self.pool_size = pool_size
         self.name = name
-        
+
         # Create pool of buffers
         self._pool: list[io.BytesIO] = []
         self._available: list[int] = []
         self._lock = threading.Lock()
-        
+
         # Pre-allocate buffers
         for i in range(pool_size):
             buffer = io.BytesIO()
@@ -62,13 +61,13 @@ class MemoryPool:
             buffer.truncate(0)
             self._pool.append(buffer)
             self._available.append(i)
-        
+
         # Stats
         self._total_acquired = 0
         self._total_fallbacks = 0
-        
+
         logger.info(
-            f"MemoryPool initialized",
+            "MemoryPool initialized",
             name=name,
             pool_size=pool_size,
             buffer_size_mb=buffer_size / (1024 * 1024),
@@ -78,17 +77,17 @@ class MemoryPool:
     def acquire(self) -> Generator[io.BytesIO, None, None]:
         """
         Acquire a buffer from the pool.
-        
+
         If pool is exhausted, creates a new temporary buffer.
         Buffer is automatically returned to pool when context exits.
-        
+
         Yields:
             BytesIO buffer ready for use
         """
         buffer: io.BytesIO
         idx: int | None = None
         is_pooled = True
-        
+
         with self._lock:
             if self._available:
                 idx = self._available.pop()
@@ -100,18 +99,18 @@ class MemoryPool:
                 is_pooled = False
                 self._total_fallbacks += 1
                 logger.debug(
-                    f"Pool exhausted, creating temporary buffer",
+                    "Pool exhausted, creating temporary buffer",
                     name=self.name,
                     fallback_count=self._total_fallbacks,
                 )
-        
+
         try:
             yield buffer
         finally:
             # Reset buffer
             buffer.seek(0)
             buffer.truncate(0)
-            
+
             # Return to pool if it's a pooled buffer
             if is_pooled and idx is not None:
                 with self._lock:
@@ -128,7 +127,8 @@ class MemoryPool:
                 "total_acquired": self._total_acquired,
                 "total_fallbacks": self._total_fallbacks,
                 "fallback_rate": (
-                    self._total_fallbacks / (self._total_acquired + self._total_fallbacks)
+                    self._total_fallbacks
+                    / (self._total_acquired + self._total_fallbacks)
                     if (self._total_acquired + self._total_fallbacks) > 0
                     else 0.0
                 ),
@@ -138,7 +138,7 @@ class MemoryPool:
     def resize(self, new_pool_size: int):
         """
         Resize the pool.
-        
+
         Note: Can only increase pool size. Decreasing requires waiting
         for buffers to be returned.
         """
@@ -151,10 +151,10 @@ class MemoryPool:
                     buffer.truncate(0)
                     self._pool.append(buffer)
                     self._available.append(i)
-                
+
                 self.pool_size = new_pool_size
                 logger.info(
-                    f"Pool resized",
+                    "Pool resized",
                     name=self.name,
                     new_size=new_pool_size,
                 )
@@ -164,13 +164,13 @@ class PooledBytesIO(io.BytesIO):
     """
     BytesIO subclass that automatically returns to pool when closed.
     """
-    
+
     def __init__(self, pool: "MemoryPool", idx: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._pool = pool
         self._idx = idx
         self._returned = False
-    
+
     def close(self):
         """Override close to return buffer to pool."""
         if not self._returned:
@@ -189,10 +189,10 @@ _pools: dict[str, MemoryPool] = {}
 def get_pool(name: str = "default") -> MemoryPool:
     """
     Get or create a memory pool by name.
-    
+
     Args:
         name: Pool identifier
-        
+
     Returns:
         MemoryPool instance
     """
@@ -210,7 +210,7 @@ def get_pool(name: str = "default") -> MemoryPool:
             pool_size=config["pool_size"],
             name=name,
         )
-    
+
     return _pools[name]
 
 

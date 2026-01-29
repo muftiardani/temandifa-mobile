@@ -3,9 +3,10 @@ File upload validation utilities.
 Consolidates common validation logic used across routers.
 """
 
-from fastapi import HTTPException, UploadFile, status
+from fastapi import UploadFile
 
 from app.core.config import settings
+from app.core.exceptions import FileTooLargeException
 from app.core.http.validation import validate_audio_file, validate_image_file
 
 
@@ -23,7 +24,8 @@ async def read_and_validate_image(
         File contents as bytes
 
     Raises:
-        HTTPException: If file is too large or invalid type
+        FileTooLargeException: If file exceeds size limit
+        InvalidFileTypeException: If file type is not allowed
     """
     if max_size is None:
         max_size = settings.max_image_size
@@ -34,10 +36,7 @@ async def read_and_validate_image(
     file.file.seek(0)
 
     if file_size > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large. Max size: {max_size / (1024*1024):.1f}MB",
-        )
+        raise FileTooLargeException(max_size // (1024 * 1024))
 
     # Read content
     contents = await file.read()
@@ -62,7 +61,8 @@ async def read_and_validate_audio(
         Tuple of (file contents, filename)
 
     Raises:
-        HTTPException: If file is too large or invalid type
+        FileTooLargeException: If file exceeds size limit
+        InvalidFileTypeException: If file type is not allowed
     """
     if max_size is None:
         max_size = settings.max_audio_size
@@ -73,10 +73,7 @@ async def read_and_validate_audio(
     file.file.seek(0)
 
     if file_size > max_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File too large. Max size: {max_size / (1024*1024):.1f}MB",
-        )
+        raise FileTooLargeException(max_size // (1024 * 1024))
 
     # Read content
     contents = await file.read()

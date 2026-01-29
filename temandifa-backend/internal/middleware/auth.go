@@ -17,8 +17,8 @@ import (
 )
 
 // Auth validates JWT token and attaches user to context.
-// Uses dependency injection for userRepo and userCache.
-func Auth(jwtSecret string, userRepo repositories.UserRepository, userCache services.UserCacheService) gin.HandlerFunc {
+// Uses dependency injection for userRepo, userCache, and tokenBlacklist.
+func Auth(jwtSecret string, userRepo repositories.UserRepository, userCache services.UserCacheService, tokenBlacklist *services.TokenBlacklist) gin.HandlerFunc {
 	secret := []byte(jwtSecret)
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -36,7 +36,7 @@ func Auth(jwtSecret string, userRepo repositories.UserRepository, userCache serv
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		if services.IsTokenBlacklisted(c, tokenString) {
+		if tokenBlacklist != nil && tokenBlacklist.IsBlacklisted(c.Request.Context(), tokenString) {
 			logger.Debug("Token is blacklisted", zap.String("path", c.Request.URL.Path))
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"success": false,
@@ -136,4 +136,3 @@ func Auth(jwtSecret string, userRepo repositories.UserRepository, userCache serv
 		}
 	}
 }
-

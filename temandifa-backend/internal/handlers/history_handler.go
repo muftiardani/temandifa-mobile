@@ -149,7 +149,6 @@ func (h *HistoryHandler) DeleteHistory(c *gin.Context) {
 		response.NotFound(c, "History item")
 		return
 	}
-	
 
 	logger.Info("History deleted",
 		zap.String("history_id", historyID),

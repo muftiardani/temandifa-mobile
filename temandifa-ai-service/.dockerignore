@@ -1,26 +1,50 @@
-# Git
+# Version Control
 .git
 .gitignore
 
-# Python
+# Python / Virtual Env
 __pycache__/
 *.py[cod]
 *$py.class
 venv/
+env/
 .venv/
+.python-version
+pip-log.txt
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Testing / Quality
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
 
-# Environment
-.env
-.env.*
+# Model Weights (Usually mounted or downloaded, keep context small)
+*.pt
+*.pth
+*.onnx
+*.bin
+models/
 
-# Models (exclude local models to ensure fresh download in build or use volume)
-# Keep this commented if you WANT to copy local models instead of downloading
-# models/
-
-# Temporary
-tmp/
-logs/
+# OS specific
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

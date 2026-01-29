@@ -84,7 +84,7 @@ func (h *AIProxyHandler) DetectObjects(c *gin.Context) {
 		response.BadRequest(c, "No file uploaded")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Validate and read file
 	uploadedFile, err := helpers.ValidateImageUpload(header, file)
@@ -127,7 +127,7 @@ func (h *AIProxyHandler) DetectObjects(c *gin.Context) {
 		zap.Duration("latency", time.Since(start)),
 		zap.String("cache", cacheStatus),
 	)
-	
+
 	metrics.RecordAIRequest("detection", time.Since(start).Seconds(), "success", fromCache)
 }
 
@@ -150,7 +150,7 @@ func (h *AIProxyHandler) ExtractText(c *gin.Context) {
 		response.BadRequest(c, "No file uploaded")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Validate and read file
 	uploadedFile, err := helpers.ValidateImageUpload(header, file)
@@ -203,7 +203,7 @@ func (h *AIProxyHandler) TranscribeAudio(c *gin.Context) {
 		response.BadRequest(c, "No file uploaded")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Validate and read file
 	uploadedFile, err := helpers.ValidateAudioUpload(header, file)
@@ -255,7 +255,7 @@ func (h *AIProxyHandler) AskQuestion(c *gin.Context) {
 		response.BadRequest(c, "No file uploaded")
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	question := c.PostForm("question")
 	if question == "" {

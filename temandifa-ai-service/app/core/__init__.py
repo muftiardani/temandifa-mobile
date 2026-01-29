@@ -17,8 +17,15 @@ from .exceptions import (
     ModelNotReadyException,
     ValidationException,
 )
-from .logging import logger, setup_logging
-from .metrics import track_inference, track_request
+
+# HTTP submodule re-exports (backward compatibility)
+from .http import (
+    require_api_key,
+    validate_audio_file,
+    validate_file_size,
+    validate_image_file,
+    verify_api_key,
+)
 
 # Infrastructure submodule re-exports (backward compatibility)
 from .infrastructure import (
@@ -30,15 +37,8 @@ from .infrastructure import (
     limiter,
     set_cached,
 )
-
-# HTTP submodule re-exports (backward compatibility)
-from .http import (
-    require_api_key,
-    validate_audio_file,
-    validate_file_size,
-    validate_image_file,
-    verify_api_key,
-)
+from .logging import logger, setup_logging
+from .metrics import track_inference, track_request
 
 # Performance submodule re-exports (backward compatibility)
 from .performance import (
@@ -91,4 +91,3 @@ __all__ = [
     "CircuitBreaker",
     "CircuitBreakerOpenError",
 ]
-

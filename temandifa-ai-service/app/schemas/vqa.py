@@ -13,6 +13,7 @@ class VQAData(BaseModel):
 class VQAResponse(BaseModel):
     """VQA API response."""
 
+    status: str = Field("success", description="Response status")
     filename: str = Field(..., description="Original filename")
     data: VQAData = Field(..., description="VQA result data")
     is_fallback: bool = Field(False, description="Whether this is a fallback response")

@@ -1,20 +1,40 @@
-# Git
+# Version Control
 .git
 .gitignore
 
-# Go
-vendor/
+# Go Build Output
 bin/
 *.exe
 *.test
 *.out
-go.work
 
-# Environment
+# Environment Variables
 .env
 .env.*
 !.env.example
 
-# Temporary
-tmp/
+# Dependency directories
+vendor/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Documentation
+docs/
+README.md
+
+# Logs
+*.log
 logs/

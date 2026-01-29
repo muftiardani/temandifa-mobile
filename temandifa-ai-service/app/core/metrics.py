@@ -131,18 +131,13 @@ def track_inference(model: str):
             duration = time.time() - start_time
 
             # Get version dynamically if possible, else simplified
-            version = settings.model_versions.get(model, "unknown")
+            version = settings.ai_model_versions.get(model, "unknown")
             MODEL_INFERENCE_TIME.labels(model=model, version=version).observe(duration)
             return result
 
         return wrapper
 
     return decorator
-
-
-def record_detection(label: str):
-    """Record a detection event."""
-    DETECTION_COUNT.labels(label=label).inc()
 
 
 def update_memory_usage():

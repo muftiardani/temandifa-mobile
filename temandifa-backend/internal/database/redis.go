@@ -12,10 +12,6 @@ import (
 	"temandifa-backend/internal/logger"
 )
 
-// RDB is deprecated: Use dependency injection instead.
-// This global variable is kept for backward compatibility during migration.
-var RDB *redis.Client
-
 // RedisModule exports Redis dependency for Uber FX
 var RedisModule = fx.Options(
 	fx.Provide(NewRedisConnection),
@@ -49,8 +45,6 @@ func NewRedisConnection(lc fx.Lifecycle, cfg *config.Config) *redis.Client {
 				zap.String("addr", cfg.RedisAddr),
 				zap.Int("pool_size", 100),
 			)
-			// Set global for backward compatibility (deprecated)
-			RDB = client
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -64,28 +58,4 @@ func NewRedisConnection(lc fx.Lifecycle, cfg *config.Config) *redis.Client {
 	})
 
 	return client
-}
-
-// ConnectRedis is deprecated: Use NewRedisConnection with FX instead.
-// Kept for backward compatibility during migration.
-func ConnectRedis(addr string, password string) {
-	RDB = redis.NewClient(&redis.Options{
-		Addr:         addr,
-		Password:     password,
-		DB:           0,
-		PoolSize:     100,
-		MinIdleConns: 10,
-	})
-
-	ctx := context.Background()
-	_, err := RDB.Ping(ctx).Result()
-	if err != nil {
-		logger.Warn("Failed to connect to Redis - rate limiting disabled",
-			zap.Error(err),
-			zap.String("addr", addr),
-		)
-		RDB = nil
-	} else {
-		logger.Info("Redis connection established", zap.String("addr", addr))
-	}
 }

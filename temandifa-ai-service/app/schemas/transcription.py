@@ -1,11 +1,12 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TranscriptionData(BaseModel):
     """Transcription result data."""
 
-    text: str
-    language: str
+    text: str = Field(..., description="Transcribed text")
+    language: str = Field(..., description="Detected language")
+    duration: float = Field(0.0, description="Audio duration in seconds")
 
 
 class TranscriptionResponse(BaseModel):

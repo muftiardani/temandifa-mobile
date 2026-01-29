@@ -5,12 +5,23 @@ Enhanced with parallel processing using asyncio.gather.
 
 import asyncio
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from pydantic import BaseModel
 
-from app.core import logger, validate_file_size, validate_image_file
-from app.core.config import settings
+from app.core import (
+    logger,
+    settings,
+    validate_file_size,
+    validate_image_file,
+    verify_api_key,
+)
+from app.core.infrastructure.rate_limiter import limiter
 from app.core.metrics import track_request
+from app.routers.helpers import (
+    create_detection_data,
+    create_ocr_data,
+    parse_detection_objects,
+)
 from app.schemas.detection import DetectionResponse
 from app.schemas.ocr import OCRResponse
 
@@ -57,42 +68,39 @@ async def process_single_detection(
         if not response.success:
             raise Exception(response.message)
 
-        detections = []
-        for obj in response.objects:
-            detections.append(
-                {
-                    "label": obj.label,
-                    "confidence": round(obj.confidence, 4),
-                    "bbox": list(obj.bbox),
-                }
-            )
+        # Use helper function to parse detection objects
+        detections = parse_detection_objects(response.objects)
 
         if language and language != "en":
             detections = translate_detections(detections, language)
+
+        # Use helper function to create DetectionData
+        detection_data = create_detection_data(detections, language)
 
         return BatchDetectionResult(
             filename=file.filename,
             status="success",
             data=DetectionResponse(
                 status="success",
-                filename=file.filename,
-                language=language,
-                count=len(detections),
-                data=detections,
+                filename=file.filename or "unknown",
+                data=detection_data,
             ),
         )
     except Exception as e:
-        logger.error(f"Detection failed for {file.filename}: {e}")
+        logger.error("Batch detection failed", filename=file.filename, error=str(e))
         return BatchDetectionResult(
             filename=file.filename, status="error", error=str(e)
         )
 
 
 @router.post("/detect/batch", response_model=BatchDetectionResponse)
+@limiter.limit(f"{settings.rate_limit_requests}/{settings.rate_limit_window}")
 @track_request("detect_batch")
 async def detect_batch(
+    request: Request,
     files: list[UploadFile] = File(...),
-    language: str = Query(default="id", description="Language for labels"),
+    language: str = Query(default="en", description="Language for labels"),
+    _: bool = Depends(verify_api_key),
 ):
     """
     Batch object detection for multiple images.
@@ -115,13 +123,12 @@ async def detect_batch(
             tasks.append(process_single_detection(file, content, language))
         except Exception as e:
             # Create failed result immediately for validation errors
-            tasks.append(
-                asyncio.coroutine(
-                    lambda f=file, err=e: BatchDetectionResult(
-                        filename=f.filename, status="error", error=str(err)
-                    )
-                )()
-            )
+            async def make_error_detection(f=file, err=e):
+                return BatchDetectionResult(
+                    filename=f.filename, status="error", error=str(err)
+                )
+
+            tasks.append(make_error_detection())
 
     # Execute all tasks in parallel
     results = await asyncio.gather(*tasks, return_exceptions=False)
@@ -162,63 +169,40 @@ async def process_single_ocr(
     """
     from app.core.infrastructure.grpc_client import ai_client
     from app.grpc_generated import ai_service_pb2
-    from app.schemas.ocr import OCRBoundingBox, OCRData, OCRLine
 
     try:
         stub = ai_client.get_stub()
         grpc_request = ai_service_pb2.OCRRequest(
-            filename=file.filename or "unknown", image_data=content, language=languages
+            filename=file.filename or "unknown",
+            image_data=content,
+            language=languages,
         )
         response = await stub.ExtractText(grpc_request)
 
         if not response.success:
             raise Exception(response.message)
 
-        lines = []
-        for line in response.lines:
-            bbox_flat = list(line.bbox)
-            if len(bbox_flat) >= 8:
-                bbox_obj = OCRBoundingBox(
-                    top_left=[bbox_flat[0], bbox_flat[1]],
-                    top_right=[bbox_flat[2], bbox_flat[3]],
-                    bottom_right=[bbox_flat[4], bbox_flat[5]],
-                    bottom_left=[bbox_flat[6], bbox_flat[7]],
-                )
-            else:
-                bbox_obj = OCRBoundingBox(
-                    top_left=[0, 0],
-                    top_right=[0, 0],
-                    bottom_right=[0, 0],
-                    bottom_left=[0, 0],
-                )
-
-            lines.append(
-                OCRLine(text=line.text, confidence=line.confidence, bbox=bbox_obj)
-            )
-
-        ocr_data = OCRData(
-            full_text=response.full_text,
-            word_count=len(response.full_text.split()) if response.full_text else 0,
-            line_count=len(lines),
-            language=languages,
-            lines=lines,
-        )
+        # Use helper function to create OCRData
+        ocr_data = create_ocr_data(response, languages)
 
         return BatchOCRResult(
             filename=file.filename,
             status="success",
-            data=OCRResponse(filename=file.filename, data=ocr_data),
+            data=OCRResponse(filename=file.filename or "unknown", data=ocr_data),
         )
     except Exception as e:
-        logger.error(f"OCR failed for {file.filename}: {e}")
+        logger.error("Batch OCR failed", filename=file.filename, error=str(e))
         return BatchOCRResult(filename=file.filename, status="error", error=str(e))
 
 
 @router.post("/ocr/batch", response_model=BatchOCRResponse)
+@limiter.limit(f"{settings.rate_limit_requests}/{settings.rate_limit_window}")
 @track_request("ocr_batch")
 async def ocr_batch(
+    request: Request,
     files: list[UploadFile] = File(...),
-    languages: str = Query(default="en", description="OCR languages (en, ch, id)"),
+    language: str = Query(default="en", description="OCR language (en, ch, id)"),
+    _: bool = Depends(verify_api_key),
 ):
     """
     Batch OCR for multiple images.
@@ -237,15 +221,15 @@ async def ocr_batch(
             validate_file_size(file.size, settings.max_image_size)
             content = await file.read()
             validate_image_file(content, file.filename)
-            tasks.append(process_single_ocr(file, content, languages))
+            tasks.append(process_single_ocr(file, content, language))
         except Exception as e:
-            tasks.append(
-                asyncio.coroutine(
-                    lambda f=file, err=e: BatchOCRResult(
-                        filename=f.filename, status="error", error=str(err)
-                    )
-                )()
-            )
+            # Create failed result immediately for validation errors
+            async def make_error_ocr(f=file, err=e):
+                return BatchOCRResult(
+                    filename=f.filename, status="error", error=str(err)
+                )
+
+            tasks.append(make_error_ocr())
 
     # Execute all tasks in parallel
     results = await asyncio.gather(*tasks, return_exceptions=False)

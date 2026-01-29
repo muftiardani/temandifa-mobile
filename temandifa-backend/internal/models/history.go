@@ -22,4 +22,3 @@ type History struct {
 	InputSource string      `json:"input_source"`                                                   // URL or filename of image/audio
 	ResultText  string      `json:"result_text" gorm:"type:text"`                                   // Classification result or transcribed text
 }
-

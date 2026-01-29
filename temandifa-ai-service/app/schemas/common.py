@@ -7,6 +7,7 @@ class ModelStatus(BaseModel):
     yolo: bool = False
     ocr: bool = False
     whisper: bool = False
+    vqa: bool = False
 
 
 class HealthResponse(BaseModel):
@@ -16,17 +17,3 @@ class HealthResponse(BaseModel):
     models: ModelStatus
     versions: dict[str, str]
     ready_count: str
-
-
-class ErrorDetail(BaseModel):
-    """Error detail structure."""
-
-    code: str
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response."""
-
-    status: str = "error"
-    error: ErrorDetail

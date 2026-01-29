@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
-	pb "temandifa-backend/internal/grpc/aiservice"
+	pb "temandifa-backend/internal/grpc/aiservice" //nolint:typecheck
 	"temandifa-backend/internal/helpers"
 	"temandifa-backend/internal/logger"
 )
@@ -38,10 +38,10 @@ func NewAIClient(address string) (*AIClient, func(), error) {
 		PermitWithoutStream: true,             // send pings even without active streams
 	}
 
-	conn, err := grpc.DialContext(ctx, address,
+	conn, err := grpc.DialContext(ctx, address, //nolint:staticcheck
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
-		grpc.WithBlock(),
+		grpc.WithBlock(), //nolint:staticcheck
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to ai service: %w", err)

@@ -66,5 +66,3 @@ func (p *Pagination) ToMeta() gin.H {
 		"total_pages": p.TotalPages,
 	}
 }
-
-

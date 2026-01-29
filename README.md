@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/React_Native-0.81-61DAFB?style=flat-square&logo=react" alt="React Native"/>
   <img src="https://img.shields.io/badge/Expo-SDK_54-000020?style=flat-square&logo=expo" alt="Expo"/>
   <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go" alt="Go"/>
+  <img src="https://img.shields.io/badge/Uber_Fx-DI-black?style=flat-square&logo=uber" alt="Uber Fx"/>
   <img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=flat-square&logo=fastapi" alt="FastAPI"/>
   <img src="https://img.shields.io/badge/gRPC-Protocol-244c5a?style=flat-square&logo=grpc" alt="gRPC"/>
 </p>
@@ -457,6 +458,26 @@ docker-compose logs -f backend ai-service
 | **Prometheus**  | 9090  | http://localhost:9090 | Metrics             |
 | **Grafana**     | 3000  | http://localhost:3000 | Dashboard           |
 
+### 5️⃣ (Opsional) Mengaktifkan GPU Support
+
+Untuk performa inferensi AI yang lebih cepat (NVIDIA GPU required):
+
+1. Pastikan **NVIDIA Container Toolkit** sudah terinstall.
+2. Edit `docker-compose.yml`:
+   ```yaml
+   ai-service:
+     build:
+       dockerfile: Dockerfile.gpu # Ubah dari Dockerfile ke Dockerfile.gpu
+     deploy:
+       resources:
+         reservations:
+           devices:
+             - driver: nvidia
+               count: 1
+               capabilities: [gpu]
+   ```
+3. Rebuild service: `docker-compose up -d --build ai-service`
+
 ### 4️⃣ Jalankan Mobile App
 
 ```bash
@@ -495,6 +516,7 @@ Scan QR code dengan **Expo Go** app di smartphone Anda.
 | ---------- | ------- | ------------------------ |
 | Go         | 1.25    | Programming language     |
 | Gin        | 1.11    | HTTP framework           |
+| Uber Fx    | 1.20    | Dependency Injection     |
 | GORM       | 1.31    | ORM for PostgreSQL       |
 | JWT v5     | 5.3     | Authentication           |
 | gRPC       | 1.78    | AI service communication |
@@ -602,6 +624,8 @@ temandifa/
 │       └── clients/                # gRPC client
 │
 ├── 🤖 temandifa-ai-service/        # Python AI service
+│   ├── Dockerfile                  # CPU Dockerfile
+│   ├── Dockerfile.gpu              # GPU Dockerfile (CUDA 12.1)
 │   └── app/
 │       ├── main.py                 # FastAPI + gRPC process spawn
 │       ├── worker.py               # gRPC server with models

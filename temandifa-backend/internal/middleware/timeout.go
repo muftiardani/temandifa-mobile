@@ -46,22 +46,6 @@ func Timeout(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
-// AITimeout is a preconfigured timeout for AI operations (60 seconds)
-// Deprecated: Use per-operation timeouts (DetectTimeout, OCRTimeout, etc.) instead
-func AITimeout() gin.HandlerFunc {
-	return Timeout(60 * time.Second)
-}
-
-// AuthTimeout is a preconfigured timeout for auth operations (10 seconds)
-func AuthTimeout() gin.HandlerFunc {
-	return Timeout(10 * time.Second)
-}
-
-// DefaultTimeout is a preconfigured timeout for general operations (30 seconds)
-func DefaultTimeout() gin.HandlerFunc {
-	return Timeout(30 * time.Second)
-}
-
 // ---- Per-Operation AI Timeouts (Configurable) ----
 
 // DetectTimeout returns a timeout middleware for object detection operations

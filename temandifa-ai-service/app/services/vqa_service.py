@@ -13,9 +13,9 @@ from PIL import Image
 from tenacity import before_log, retry, stop_after_attempt, wait_exponential
 
 from app.core import logger
-from app.core.performance.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 from app.core.config import settings
 from app.core.metrics import track_inference
+from app.core.performance.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 # Conditional import for memory pool
 if settings.memory_pool_enabled:
@@ -139,4 +139,3 @@ class VQAService:
             "circuit_breaker": gemini_circuit_breaker.get_status(),
             "memory_pool_enabled": settings.memory_pool_enabled,
         }
-
