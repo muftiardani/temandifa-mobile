@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Switch } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useScreenReaderFocus } from "../hooks/useScreenReaderFocus";
 import { useThemeStore } from "../stores/themeStore";
 import { ThemedText } from "../components/atoms/ThemedText";
 import { ThemedView } from "../components/atoms/ThemedView";
@@ -12,6 +13,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
   const { theme, isDark, toggleTheme } = useThemeStore();
+  const focusRef = useScreenReaderFocus();
 
   interface MenuItemProps {
     icon: keyof typeof Ionicons.glyphMap;
@@ -86,7 +88,11 @@ export default function SettingsScreen() {
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Section: Tampilan & Preferensi */}
-        <ThemedText variant="caption" style={styles.sectionHeader}>
+        <ThemedText
+          variant="caption"
+          style={styles.sectionHeader}
+          ref={focusRef}
+        >
           {t("settings.appearance")}
         </ThemedText>
         <ThemedView

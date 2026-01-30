@@ -1,5 +1,4 @@
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import { useState, useRef } from "react";
+import { CameraView } from "expo-camera";
 import {
   Button,
   StyleSheet,
@@ -8,39 +7,39 @@ import {
   ScrollView,
   Switch,
 } from "react-native";
-import { Image } from "expo-image"; // Use expo-image for better performance
-import * as Speech from "expo-speech";
+import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import Toast from "react-native-toast-message";
 
 import { useThemeStore } from "../stores/themeStore";
-import { Logger } from "../services/logger";
+import { useCameraLogic } from "../hooks/useCameraLogic";
 
-import { detectObject } from "../services/detectionService";
-import { askAboutImage } from "../services/vqaService";
-import { saveHistory } from "../services/historyService";
 import { LoadingOverlay } from "../components/molecules/LoadingOverlay";
-import { DetectionItem } from "../schemas/detection";
-import { haptics } from "../utils/haptics";
-import { optimizeImageForDetection, optimizeImage } from "../utils/imageUtils";
 import { ThemedText } from "../components/atoms/ThemedText";
 import { ThemedView } from "../components/atoms/ThemedView";
 import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
+import { useScreenReaderFocus } from "../hooks/useScreenReaderFocus";
 
 export default function CameraScreen() {
-  const [facing, setFacing] = useState<CameraType>("back");
-  const [permission, requestPermission] = useCameraPermissions();
-  const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [detections, setDetections] = useState<DetectionItem[]>([]);
-  const [smartMode, setSmartMode] = useState(false);
-  const [smartDescription, setSmartDescription] = useState<string | null>(null);
-
   const { t } = useTranslation();
   const { theme } = useThemeStore();
+  const focusRef = useScreenReaderFocus();
 
-  const cameraRef = useRef<CameraView>(null);
+  const {
+    cameraRef,
+    facing,
+    permission,
+    requestPermission,
+    image,
+    loading,
+    detections,
+    smartMode,
+    smartDescription,
+    takePicture,
+    reset,
+    toggleCameraFacing,
+    toggleSmartMode,
+  } = useCameraLogic();
 
   if (!permission) {
     return (
@@ -64,109 +63,6 @@ export default function CameraScreen() {
         />
       </View>
     );
-  }
-
-  async function takePicture() {
-    if (cameraRef.current) {
-      try {
-        await haptics.medium();
-
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
-          base64: false, // We don't need base64, URI is enough and faster
-        });
-        if (photo) {
-          setImage(photo.uri);
-          processImage(photo.uri);
-        }
-      } catch (e) {
-        Logger.error("CameraScreen", "Failed to take picture", e);
-        haptics.error();
-        Toast.show({
-          type: "error",
-          text1: t("camera.error_capture"),
-          text2: t("common.retry"),
-          visibilityTime: 3000,
-        });
-      }
-    }
-  }
-
-  async function processImage(uri: string) {
-    setLoading(true);
-    setDetections([]);
-    setSmartDescription(null);
-    try {
-      if (smartMode) {
-        // Smart VQA Mode
-        // Using slighty better quality for VQA
-        const optimizedUri = await optimizeImage(uri, {
-          maxWidth: 1024,
-          quality: 0.7,
-        });
-
-        // Default "Describe" prompt
-        const prompt =
-          "Deskripsikan apa yang ada di gambar ini secara detail untuk membantu tunanetra.";
-        const response = await askAboutImage(optimizedUri, prompt);
-
-        if (response.data && response.data.success) {
-          const answer = response.data.answer;
-          setSmartDescription(answer);
-          haptics.success();
-          Speech.speak(answer);
-
-          try {
-            await saveHistory("VQA", uri, answer);
-          } catch {}
-        } else {
-          throw new Error(response.error || "VQA Failed");
-        }
-      } else {
-        // Standard Detection Mode
-        const optimizedUri = await optimizeImageForDetection(uri);
-        const response = await detectObject(optimizedUri);
-
-        if (response.data) {
-          setDetections(response.data);
-
-          const labels = response.data.map((d) => d.label).join(", ");
-          if (labels) {
-            haptics.success();
-            Speech.speak(t("voice.result_label") + " " + labels);
-
-            try {
-              await saveHistory("OBJECT", uri, labels);
-            } catch {}
-          } else {
-            Speech.speak(t("camera.no_object"));
-          }
-        }
-      }
-    } catch (error) {
-      Logger.error("CameraScreen", "Processing error", error);
-      haptics.error();
-      Speech.speak(t("camera.error_detect"));
-      Toast.show({
-        type: "error",
-        text1: t("camera.error_detect"),
-        text2: t("errors.network"),
-        visibilityTime: 4000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function reset() {
-    setImage(null);
-    setDetections([]);
-    setSmartDescription(null);
-    Speech.stop();
-  }
-
-  function toggleCameraFacing() {
-    setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
   if (image) {
@@ -263,30 +159,21 @@ export default function CameraScreen() {
           <View
             style={styles.smartToggleContainer}
             accessible={true}
+            ref={focusRef}
             accessibilityLabel={`Mode Pintar AI. ${
               smartMode ? "Aktif" : "Nonaktif"
             }. Ketuk dua kali untuk mengubah.`}
             accessibilityRole="switch"
             accessibilityState={{ checked: smartMode }}
             accessibilityActions={[{ name: "activate", label: "Ubah" }]}
-            onAccessibilityAction={() => {
-              setSmartMode(!smartMode);
-              Speech.speak(
-                !smartMode ? "Mode Pintar Aktif" : "Mode Standar Aktif"
-              );
-            }}
+            onAccessibilityAction={() => toggleSmartMode(!smartMode)}
           >
             <ThemedText style={{ color: "white", fontWeight: "bold" }}>
               Model Pintar
             </ThemedText>
             <Switch
               value={smartMode}
-              onValueChange={(val) => {
-                haptics.selection();
-                setSmartMode(val);
-                Speech.stop();
-                Speech.speak(val ? "Mode Pintar Aktif" : "Mode Standar Aktif");
-              }}
+              onValueChange={toggleSmartMode}
               thumbColor={smartMode ? theme.colors.primary : "#f4f3f4"}
               trackColor={{
                 false: "#767577",

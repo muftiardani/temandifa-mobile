@@ -6,7 +6,6 @@ import {
   Switch,
   Modal,
   TextInput,
-  TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuthStore } from "../stores/authStore";
@@ -18,6 +17,7 @@ import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTou
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 import { useTranslation } from "react-i18next";
+import { useScreenReaderFocus } from "../hooks/useScreenReaderFocus";
 
 export default function ProfileScreen() {
   const navigation =
@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   } = useAuthStore();
   const { theme } = useThemeStore();
   const { t } = useTranslation();
+  const focusRef = useScreenReaderFocus();
   const [modalVisible, setModalVisible] = React.useState(false);
   const [passwordConfirm, setPasswordConfirm] = React.useState("");
 
@@ -85,7 +86,8 @@ export default function ProfileScreen() {
             </ThemedText>
           </View>
         </View>
-        <ThemedText variant="title" style={styles.name}>
+
+        <ThemedText variant="title" style={styles.name} ref={focusRef}>
           {user?.full_name || "Pengguna"}
         </ThemedText>
         <ThemedText variant="subtitle" style={styles.email}>
@@ -220,23 +222,27 @@ export default function ProfileScreen() {
             />
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
+              <AccessibleTouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.modalBtnCancel}
+                accessibilityLabel={t("auth.cancel_btn")}
+                accessibilityRole="button"
               >
                 <ThemedText color={theme.colors.error}>
                   {t("auth.cancel_btn")}
                 </ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </AccessibleTouchableOpacity>
+              <AccessibleTouchableOpacity
                 onPress={confirmEnableBiometric}
                 style={[
                   styles.modalBtnConfirm,
                   { backgroundColor: theme.colors.primary },
                 ]}
+                accessibilityLabel={t("auth.activate")}
+                accessibilityRole="button"
               >
                 <ThemedText color="white">{t("auth.activate")}</ThemedText>
-              </TouchableOpacity>
+              </AccessibleTouchableOpacity>
             </View>
           </View>
         </View>

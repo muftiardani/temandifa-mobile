@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
@@ -14,6 +13,8 @@ import { useThemeStore } from "../stores/themeStore";
 import Toast from "react-native-toast-message";
 
 import { AccessibleTextInput } from "../components/molecules/AccessibleTextInput";
+import { useTranslation } from "react-i18next";
+import { AuthLayout } from "../components/layouts/AuthLayout";
 
 export default function RegisterScreen() {
   const [fullName, setFullName] = useState("");
@@ -22,6 +23,7 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const { theme } = useThemeStore();
+  const { t } = useTranslation();
 
   async function handleRegister() {
     setLoading(true);
@@ -29,14 +31,14 @@ export default function RegisterScreen() {
       await registerApi(fullName, email, password);
       Toast.show({
         type: "success",
-        text1: "Registrasi Berhasil",
-        text2: "Silakan login dengan akun baru Anda",
+        text1: t("auth.register_success"),
+        text2: t("auth.register_success_desc"),
       });
       navigation.goBack();
     } catch (e: any) {
       Toast.show({
         type: "error",
-        text1: "Registrasi Gagal",
+        text1: t("auth.register_failed"),
         text2: e.toString(),
       });
     } finally {
@@ -45,38 +47,32 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <Text style={[styles.title, { color: theme.colors.text }]}>
-        Daftar Akun
-      </Text>
-
+    <AuthLayout title={t("auth.register")}>
       <AccessibleTextInput
-        label="Nama Lengkap"
+        label={t("auth.full_name")}
         placeholder="John Doe"
         value={fullName}
         onChangeText={setFullName}
-        accessibilityHint="Masukkan nama lengkap anda"
+        accessibilityHint={t("auth.enter_fullname")}
       />
 
       <AccessibleTextInput
-        label="Email"
+        label={t("auth.email")}
         placeholder="nama@email.com"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        accessibilityHint="Masukkan alamat email anda"
+        accessibilityHint={t("auth.enter_email")}
       />
 
       <AccessibleTextInput
-        label="Password"
+        label={t("auth.password")}
         placeholder="******"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        accessibilityHint="Masukkan kata sandi baru"
+        accessibilityHint={t("auth.enter_new_password")}
       />
 
       {loading ? (
@@ -86,11 +82,13 @@ export default function RegisterScreen() {
           <AccessibleTouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.primary }]}
             onPress={handleRegister}
-            accessibilityLabel="Tombol Daftar"
-            accessibilityHint="Menekan tombol ini akan membuat akun baru"
+            accessibilityLabel={t("auth.register_btn")}
+            accessibilityHint={t("auth.register_btn")}
             accessibilityRole="button"
           >
-            <ThemedText style={styles.buttonText}>Daftar</ThemedText>
+            <ThemedText style={styles.buttonText} color="white">
+              {t("auth.register")}
+            </ThemedText>
           </AccessibleTouchableOpacity>
         </View>
       )}
@@ -98,37 +96,20 @@ export default function RegisterScreen() {
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         accessibilityRole="link"
-        accessibilityLabel="Sudah punya akun? Masuk sekarang"
+        accessibilityLabel={t("auth.has_account")}
       >
-        <Text style={[styles.link, { color: theme.colors.primary }]}>
-          Sudah punya akun? Masuk
-        </Text>
+        <ThemedText style={styles.link} color={theme.colors.primary}>
+          {t("auth.has_account")} {t("auth.login")}
+        </ThemedText>
       </TouchableOpacity>
-    </View>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
   buttonContainer: {
     marginBottom: 20,
+    marginTop: 20,
   },
   button: {
     padding: 15,
@@ -137,7 +118,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: {
-    color: "white",
     fontWeight: "bold",
     fontSize: 16,
   },

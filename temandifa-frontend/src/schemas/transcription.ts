@@ -12,8 +12,6 @@ export const TranscriptionResponseSchema = z.object({
   error: z.string().optional(),
 });
 
-export type TranscriptionData = z.infer<typeof TranscriptionDataSchema>;
-export type TranscriptionResponse = z.infer<typeof TranscriptionResponseSchema>;
 // Alias for backward compatibility if needed, or better naming
 export type TranscriptionResult = {
   status: string;

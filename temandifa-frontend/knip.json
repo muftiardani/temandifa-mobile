@@ -8,7 +8,8 @@
     "expo-system-ui",
     "react-native-web",
     "react-dom",
-    "@expo/metro-runtime"
+    "@expo/metro-runtime",
+    "expo-updates"
   ],
   "ignoreExportsUsedInFile": true
 }

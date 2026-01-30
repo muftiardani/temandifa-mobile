@@ -28,12 +28,8 @@ export const HistoryListResponseSchema = z.object({
   }),
 });
 
-export type HistoryListResponse = z.infer<typeof HistoryListResponseSchema>;
-
 // Create History Response Schema
 export const HistoryCreateResponseSchema = z.object({
   message: z.string(),
   data: HistoryItemSchema,
 });
-
-export type HistoryCreateResponse = z.infer<typeof HistoryCreateResponseSchema>;

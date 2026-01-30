@@ -484,9 +484,15 @@ cd temandifa-frontend
 
 # Install dependencies
 npm install
+# Jika ada error dependency conflict:
+npm install --legacy-peer-deps
 
 # Start Expo development server
 npx expo start
+
+# Jalankan Unit Tests
+npm test
+npm run test:watch
 ```
 
 Scan QR code dengan **Expo Go** app di smartphone Anda.
@@ -508,6 +514,8 @@ Scan QR code dengan **Expo Go** app di smartphone Anda.
 | i18next      | 25.7    | Internationalization   |
 | Moti         | 0.30    | Animations             |
 | Sentry       | 7.2     | Error tracking         |
+| Jest         | 29.7    | Unit Testing           |
+| RNTL         | 13.3    | Component Testing      |
 
 ### Backend (API Gateway)
 

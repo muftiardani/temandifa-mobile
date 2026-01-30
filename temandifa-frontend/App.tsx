@@ -5,9 +5,12 @@ import * as Sentry from "@sentry/react-native";
 
 import { queryClient, asyncStoragePersister } from "./src/services/queryClient";
 import "./src/i18n";
-
+import { initSentry } from "./src/config/sentry";
 import { ErrorBoundary } from "./src/components/organisms/ErrorBoundary";
 import { AppNavigator } from "./src/navigation/AppNavigator";
+
+// Initialize Sentry
+initSentry();
 
 function App() {
   return (

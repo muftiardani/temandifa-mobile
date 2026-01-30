@@ -3,11 +3,13 @@ import { Logger } from "../services/logger";
 
 const envSchema = z.object({
   API_URL: z.string().url().default("http://10.0.2.2:8080/api/v1"),
+  SENTRY_DSN: z.string().optional(),
   // Add other env vars here
 });
 
 const _env = {
   API_URL: process.env.EXPO_PUBLIC_API_URL,
+  SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN,
 };
 
 let env: z.infer<typeof envSchema>;
@@ -39,7 +41,7 @@ try {
       );
     }
     // In dev, maybe minimal defaults
-    env = { API_URL: "http://localhost:8080/api/v1" };
+    env = { API_URL: "http://localhost:8080/api/v1", SENTRY_DSN: "" };
   } else {
     env = parsed.data;
   }

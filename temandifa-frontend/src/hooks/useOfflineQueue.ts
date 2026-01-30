@@ -57,5 +57,3 @@ export function useOfflineQueue(): UseOfflineQueueResult {
     removeRequest,
   };
 }
-
-export default useOfflineQueue;

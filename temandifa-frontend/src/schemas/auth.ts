@@ -14,8 +14,6 @@ export const TokensSchema = z.object({
   expires_at: z.string(),
 });
 
-export type Tokens = z.infer<typeof TokensSchema>;
-
 export const AuthResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
@@ -26,5 +24,3 @@ export const AuthResponseSchema = z.object({
     user: UserSchema,
   }),
 });
-
-export type AuthResponse = z.infer<typeof AuthResponseSchema>;

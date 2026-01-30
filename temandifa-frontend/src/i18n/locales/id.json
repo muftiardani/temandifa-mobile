@@ -71,9 +71,19 @@
     "inactive": "Nonaktif",
     "activity_history": "Riwayat Aktivitas",
     "sign_out": "Keluar Akun",
-    "history_delete_title": "Hapus Riwayat",
-    "history_delete_confirm": "Apakah Anda yakin ingin menghapus item ini?",
-    "delete": "Hapus"
+    "welcome_back": "Selamat datang kembali!",
+    "login_failed": "Login Gagal",
+    "register_failed": "Registrasi Gagal",
+    "biometric_verify_fail": "Verifikasi biometrik gagal atau dibatalkan.",
+    "register_success_desc": "Silakan login dengan akun baru Anda",
+    "enter_email": "Masukkan alamat email anda",
+    "enter_password": "Masukkan kata sandi anda",
+    "enter_fullname": "Masukkan nama lengkap anda",
+    "enter_new_password": "Masukkan kata sandi baru",
+    "login_btn": "Masuk",
+    "register_btn": "Daftar",
+    "login_link": "Masuk sekarang",
+    "register_link": "Daftar sekarang"
   },
   "document_scanner": {
     "permission_msg": "Akses kamera diperlukan untuk memindai dokumen.",

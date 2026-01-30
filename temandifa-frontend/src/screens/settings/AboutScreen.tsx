@@ -2,13 +2,16 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useThemeStore } from "../../stores/themeStore";
 import { ThemedText } from "../../components/atoms/ThemedText";
-import { ThemedView } from "../../components/atoms/ThemedView";
+import { InfoScreenLayout } from "../../components/layouts/InfoScreenLayout";
 
 export default function AboutScreen() {
   const { theme } = useThemeStore();
 
   return (
-    <ThemedView style={styles.container}>
+    <InfoScreenLayout
+      title="Tentang"
+      contentContainerStyle={{ alignItems: "center" }}
+    >
       <View style={styles.logoContainer}>
         <View
           style={[
@@ -48,16 +51,11 @@ export default function AboutScreen() {
           © 2026 TemanDifa Project
         </ThemedText>
       </View>
-    </ThemedView>
+    </InfoScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    padding: 24,
-  },
   logoContainer: {
     alignItems: "center",
     marginTop: 60,

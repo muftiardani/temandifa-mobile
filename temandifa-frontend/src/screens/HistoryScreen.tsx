@@ -29,20 +29,20 @@ export default function HistoryScreen() {
 
   const handleDelete = React.useCallback(
     (id: number) => {
-      Alert.alert(
-        t("auth.history_delete_title"),
-        t("auth.history_delete_confirm"),
-        [
-          { text: t("auth.cancel_btn"), style: "cancel" },
-          {
-            text: t("auth.delete"),
-            style: "destructive",
-            onPress: () => {
+      Alert.alert(t("history.delete_confirm"), t("history.delete_message"), [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
               deleteMutation.mutate(id);
-            },
+            } catch (error) {
+              console.error("Failed to delete history item:", error);
+            }
           },
-        ]
-      );
+        },
+      ]);
     },
     [t, deleteMutation]
   );
@@ -138,7 +138,7 @@ export default function HistoryScreen() {
             style={styles.emptyText}
             color={theme.colors.textSecondary}
           >
-            Belum ada riwayat aktivitas.
+            {t("auth.empty")}
           </ThemedText>
         </View>
       ) : (

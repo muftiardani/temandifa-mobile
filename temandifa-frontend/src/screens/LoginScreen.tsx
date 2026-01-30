@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
@@ -16,6 +15,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 import Toast from "react-native-toast-message";
 import { AccessibleTextInput } from "../components/molecules/AccessibleTextInput";
+import { useTranslation } from "react-i18next";
+import { AuthLayout } from "../components/layouts/AuthLayout";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const { theme } = useThemeStore();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
 
   async function handleLogin() {
     setLoading(true);
@@ -33,14 +35,14 @@ export default function LoginScreen() {
       await login(email, password);
       Toast.show({
         type: "success",
-        text1: "Login Berhasil",
-        text2: "Selamat datang kembali!",
+        text1: t("auth.login_success"),
+        text2: t("auth.welcome_back"),
       });
     } catch (e: any) {
       // Use Toast for error instead of Alert
       Toast.show({
         type: "error",
-        text1: "Login Gagal",
+        text1: t("auth.login_failed"),
         text2: e.toString(),
       });
     } finally {
@@ -54,13 +56,13 @@ export default function LoginScreen() {
       await loginWithBiometrics();
       Toast.show({
         type: "success",
-        text1: "Login Biometrik Berhasil",
+        text1: t("auth.login_success"),
       });
     } catch {
       Toast.show({
         type: "error",
-        text1: "Login Gagal",
-        text2: "Verifikasi biometrik gagal atau dibatalkan.",
+        text1: t("auth.login_failed"),
+        text2: t("auth.biometric_verify_fail"),
       });
     } finally {
       setLoading(false);
@@ -68,28 +70,24 @@ export default function LoginScreen() {
   }
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <Text style={[styles.title, { color: theme.colors.text }]}>Masuk</Text>
-
+    <AuthLayout title={t("auth.login")}>
       <AccessibleTextInput
-        label="Email"
+        label={t("auth.email")}
         placeholder="nama@email.com"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
-        accessibilityHint="Masukkan alamat email anda"
+        accessibilityHint={t("auth.enter_email")}
       />
 
       <AccessibleTextInput
-        label="Password"
+        label={t("auth.password")}
         placeholder="******"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        accessibilityHint="Masukkan kata sandi anda"
+        accessibilityHint={t("auth.enter_password")}
       />
 
       {loading ? (
@@ -99,18 +97,20 @@ export default function LoginScreen() {
           <AccessibleTouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.primary }]}
             onPress={handleLogin}
-            accessibilityLabel="Tombol Masuk"
-            accessibilityHint="Menekan tombol ini akan memproses login"
+            accessibilityLabel={t("auth.login_btn")}
+            accessibilityHint={t("auth.login_btn")}
             accessibilityRole="button"
           >
-            <ThemedText style={styles.buttonText}>Masuk</ThemedText>
+            <ThemedText style={styles.buttonText} color="white">
+              {t("auth.login")}
+            </ThemedText>
           </AccessibleTouchableOpacity>
 
           {isBiometricEnabled && (
             <TouchableOpacity
               style={[styles.bioButton, { borderColor: theme.colors.primary }]}
               onPress={handleBiometricLogin}
-              accessibilityLabel="Login dengan Biometrik"
+              accessibilityLabel={t("auth.login_biometric")}
               accessibilityRole="button"
             >
               <Ionicons
@@ -118,9 +118,9 @@ export default function LoginScreen() {
                 size={24}
                 color={theme.colors.primary}
               />
-              <Text style={[styles.bioText, { color: theme.colors.primary }]}>
-                Login dengan Biometrik
-              </Text>
+              <ThemedText style={styles.bioText} color={theme.colors.primary}>
+                {t("auth.login_biometric")}
+              </ThemedText>
             </TouchableOpacity>
           )}
 
@@ -131,11 +131,11 @@ export default function LoginScreen() {
                 { backgroundColor: theme.colors.textSecondary },
               ]}
               onPress={loginAsGuest}
-              accessibilityLabel="Masuk sebagai Tamu"
+              accessibilityLabel={t("auth.login_guest")}
               accessibilityRole="button"
             >
-              <ThemedText style={styles.buttonText}>
-                Masuk sebagai Tamu
+              <ThemedText style={styles.buttonText} color="white">
+                {t("auth.login_guest")}
               </ThemedText>
             </AccessibleTouchableOpacity>
           </View>
@@ -145,37 +145,21 @@ export default function LoginScreen() {
       <TouchableOpacity
         onPress={() => navigation.navigate("Register" as any)}
         accessibilityRole="link"
-        accessibilityLabel="Belum punya akun? Daftar sekarang"
+        accessibilityLabel={t("auth.no_account")}
       >
-        <Text style={[styles.link, { color: theme.colors.primary }]}>
-          Belum punya akun? Daftar
-        </Text>
+        <ThemedText style={styles.link} color={theme.colors.primary}>
+          {t("auth.no_account")} {t("auth.register")}
+        </ThemedText>
       </TouchableOpacity>
-    </View>
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 1,
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
   buttonContainer: {
     marginBottom: 20,
     gap: 10,
+    marginTop: 20,
   },
   button: {
     padding: 15,
@@ -184,12 +168,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonText: {
-    color: "white",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  guestButton: {
-    backgroundColor: "#e0e0e0",
   },
   bioButton: {
     flexDirection: "row",
@@ -206,7 +186,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   link: {
-    color: "#2196F3",
     textAlign: "center",
     marginTop: 10,
   },

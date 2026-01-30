@@ -13,6 +13,7 @@ import { useThemeStore } from "../stores/themeStore";
 import { ThemedText } from "../components/atoms/ThemedText";
 import { ThemedView } from "../components/atoms/ThemedView";
 import { AccessibleTouchableOpacity } from "../components/wrappers/AccessibleTouchableOpacity";
+import { useScreenReaderFocus } from "../hooks/useScreenReaderFocus";
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -23,6 +24,7 @@ export default function ScanScreen() {
   const navigation = useNavigation<ScanScreenNavigationProp>();
   const { t } = useTranslation();
   const { theme } = useThemeStore();
+  const focusRef = useScreenReaderFocus();
 
   // Use Custom Hook for Logic
   const { loading, ocrResult, selectedImage, handleUpload, reset, speak } =
@@ -44,7 +46,7 @@ export default function ScanScreen() {
           ]}
           variant="surface"
         >
-          <ThemedText variant="title" style={styles.headerTitle}>
+          <ThemedText variant="title" style={styles.headerTitle} ref={focusRef}>
             {t("scan.result_title")}
           </ThemedText>
         </ThemedView>
@@ -106,7 +108,11 @@ export default function ScanScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.menuContainer}>
-        <ThemedText variant="title" style={styles.menuHeader}>
+        <ThemedText
+          variant="title"
+          style={styles.menuHeader}
+          ref={!selectedImage ? focusRef : undefined}
+        >
           {t("scan.method_title")}
         </ThemedText>
 
